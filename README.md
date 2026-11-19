@@ -1,0 +1,2 @@
+# 39-SOPKATHON-SERVER-iOS1
+ 39기 PLAY SOPT 솝커톤 iOS 1조 서버 레포지토리 🫰💃

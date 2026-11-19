@@ -2,6 +2,50 @@
 
 39기 PLAY SOPT 솝커톤 iOS 1조 서버 레포지토리 🫰💃
 
+## 기술 스택
+
+| 구분 | 기술 | 선정 이유 |
+| --- | --- | --- |
+| Framework | Spring Boot, Spring Web | REST API를 빠르게 구현하기 위해 사용합니다. |
+| Persistence | Spring Data JPA | 기본 CRUD와 도메인 모델 영속성을 일관되게 다루기 위해 사용합니다. |
+| Query | QueryDSL | 필터·정렬 등 동적 쿼리를 타입 안전하게 조립하기 위해 사용합니다. |
+| Validation | Bean Validation | 요청 값 검증을 선언적으로 처리하기 위해 사용합니다. |
+| Database | H2 (local), MySQL | 로컬에서는 목업 데이터를 빠르게 검증하고, 배포 환경에서는 관계형 데이터베이스를 사용합니다. |
+| Documentation | Springdoc | API 명세를 Swagger UI로 확인하기 위해 사용합니다. |
+| Utility | Lombok | 반복되는 보일러플레이트를 줄이기 위해 사용합니다. |
+
+## 구현 범위
+
+- iOS 클라이언트가 사용하는 REST API를 제공합니다.
+- 도메인별 비즈니스 로직, 데이터 영속화, 요청 값 검증, 공통 응답과 예외 처리를 서버에서 담당합니다.
+- 세부 기능과 API 범위는 이슈와 API 명세를 기준으로 확정합니다.
+- 클라이언트 구현, 미확정 외부 연동, 배포 인프라 구현은 별도 이슈에서 다룹니다.
+
+## 패키지 구조
+
+도메인 중심으로 패키지를 구성합니다. 공통 기능은 `common`에, 비즈니스 기능은 `domain` 아래 각 도메인에 둡니다.
+
+```text
+{base-package}
+├── common
+│   ├── code
+│   ├── config
+│   ├── dto
+│   ├── entity
+│   ├── exception
+│   └── util
+└── domain
+    └── {domain}
+        ├── code
+        ├── controller
+        ├── service
+        ├── repository
+        ├── entity
+        └── dto
+```
+
+상세 코드 규칙은 [코드 컨벤션](docs/CODE_CONVENTION.md)에서 확인할 수 있습니다.
+
 ## Git 브랜치 전략
 
 - `main` 브랜치에 직접 push하지 않습니다.
@@ -36,6 +80,7 @@
 
 ## PR 컨벤션
 
+- PR 제목은 커밋 메시지와 같은 `prefix: PR 내용` 형식의 한글로 작성합니다.
 - PR 본문에는 관련 이슈를 `close #이슈번호` 형식으로 연결합니다.
 - 무엇을, 왜 변경했는지와 리뷰어가 확인할 부분을 작성합니다.
 - PR 템플릿의 체크리스트를 완료한 뒤 리뷰를 요청합니다.

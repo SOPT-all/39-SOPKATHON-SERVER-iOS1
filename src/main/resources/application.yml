@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: sopkathon-server
+  jackson:
+    time-zone: Asia/Seoul
+  profiles:
+    default: local

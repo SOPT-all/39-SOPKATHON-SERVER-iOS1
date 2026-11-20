@@ -46,7 +46,9 @@ Match User sopkathon-deploy
     PermitUserRC no
 EOF
 fi
+install -d -m 0755 /run/sshd
 sshd -t
+systemctl start ssh
 systemctl reload ssh
 
 cat > /etc/systemd/system/sopkathon.service <<'EOF'

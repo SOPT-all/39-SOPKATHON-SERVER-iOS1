@@ -67,6 +67,8 @@
 - MySQL은 `127.0.0.1:3306`의 `sopkathon` DB를 사용합니다. Docker 포트를 바꾸면 IDE 실행 시 `DB_URL`도 같은 포트로 맞춥니다. `LOCAL_DB_PASSWORD`를 변경했다면 IDE 실행 시 `DB_PASSWORD`도 맞춥니다.
 - 서버 상태는 `http://localhost:8080/actuator/health`, API 명세는 `http://localhost:8080/swagger-ui/index.html`에서 확인합니다.
 
+팀 접속 및 AWS 운영 방법은 [배포 안내](docs/DEPLOYMENT.md)에서 확인합니다.
+
 ## Git 브랜치 전략
 
 - `main` 브랜치에 직접 push하지 않습니다.

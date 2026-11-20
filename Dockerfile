@@ -3,7 +3,7 @@ WORKDIR /app
 COPY gradle gradle
 COPY gradlew build.gradle settings.gradle ./
 COPY src src
-RUN ./gradlew --no-daemon bootJar
+RUN sed -i 's/\r$//' gradlew && sh ./gradlew --no-daemon bootJar
 
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app

@@ -1,0 +1,90 @@
+name: Server CI and deploy
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+      - run: ./gradlew --no-daemon test bootJar
+      - if: github.event_name == 'push'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: server-jar
+          path: build/libs/*.jar
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    concurrency:
+      group: sopkathon-dev-deploy
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: server-jar
+          path: release
+      - name: Install Session Manager plugin
+        run: |
+          if ! command -v session-manager-plugin >/dev/null; then
+            curl -fsSLo "$RUNNER_TEMP/session-manager-plugin.deb" \
+              https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb
+            sudo dpkg -i "$RUNNER_TEMP/session-manager-plugin.deb"
+          fi
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          aws-region: ap-northeast-2
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          role-session-name: sopkathon-deploy
+      - name: Deploy current main over SSH
+        env:
+          INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
+          HOST_PUBLIC_KEY: ${{ vars.EC2_SSH_HOST_PUBLIC_KEY }}
+        run: |
+          set -euo pipefail
+          [[ "$INSTANCE_ID" =~ ^i-[a-f0-9]+$ ]]
+          [[ "$HOST_PUBLIC_KEY" =~ ^ssh-ed25519\ [A-Za-z0-9+/=]+$ ]]
+
+          main_sha=$(git ls-remote "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" refs/heads/main | cut -f1)
+          if [[ "$main_sha" != "$GITHUB_SHA" ]]; then
+            echo 'A newer main commit is available. Skipping this deployment.'
+            exit 0
+          fi
+
+          ssh_dir=$(mktemp -d)
+          trap 'rm -rf -- "$ssh_dir"' EXIT
+          ssh-keygen -q -t ed25519 -N '' -f "$ssh_dir/deploy"
+          printf '%s %s\n' "$INSTANCE_ID" "$HOST_PUBLIC_KEY" > "$ssh_dir/known_hosts"
+
+          jars=(release/*.jar)
+          [[ ${#jars[@]} -eq 1 && -s "${jars[0]}" ]]
+          aws ec2-instance-connect send-ssh-public-key --instance-id "$INSTANCE_ID" \
+            --instance-os-user sopkathon-deploy --ssh-public-key "file://$ssh_dir/deploy.pub" >/dev/null
+          ssh -T -i "$ssh_dir/deploy" -o BatchMode=yes -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$ssh_dir/known_hosts" \
+            -o 'ProxyCommand=aws ssm start-session --target %h --document-name AWS-StartSSHSession --parameters portNumber=%p' \
+            "sopkathon-deploy@$INSTANCE_ID" < "${jars[0]}"

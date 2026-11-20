@@ -44,15 +44,17 @@ org.sopt.sopkathon
 
 | 대상 | 규칙 | 예시 |
 | --- | --- | --- |
-| 패키지 | 소문자, 언더스코어 없음 | `domain.job.service` |
-| 클래스·Enum·Record | PascalCase | `JobPosting`, `SortType` |
-| 메서드 | camelCase, 동사로 시작 | `findJobs`, `scrapJob` |
-| 변수·필드 | camelCase, 명사 | `jobs`, `closingDate` |
-| 상수 | UPPER_SNAKE_CASE | `MAX_RECENT_KEYWORD_COUNT` |
-| boolean | `is`·`has` 접두어 | `isClosed`, `hasWorkTime` |
-| DB 테이블·컬럼 | snake_case, 테이블은 단수형 | `job_posting`, `closing_date` |
-| API URL | kebab-case, 복수 명사, 동사 금지 | `/api/v1/job-postings` |
-| 쿼리 파라미터 | camelCase | `?ongoingOnly=true&sort=HOURLY` |
+| 패키지 | 소문자, 언더스코어 없음 | `domain.sample.service` |
+| 클래스·Enum·Record | PascalCase | `SampleItem`, `SortType` |
+| 메서드 | camelCase, 동사로 시작 | `findItems`, `createItem` |
+| 변수·필드 | camelCase, 명사 | `items`, `closedAt` |
+| 상수 | UPPER_SNAKE_CASE | `MAX_PAGE_SIZE` |
+| boolean | `is`·`has` 접두어 | `isClosed`, `hasItem` |
+| DB 테이블·컬럼 | snake_case, 테이블은 단수형 | `sample_item`, `closed_at` |
+| API URL | kebab-case, 복수 명사, 동사 금지 | `/api/v1/sample-items` |
+| 쿼리 파라미터 | camelCase | `?onlyOpen=true&sort=LATEST` |
+
+> 위 예시는 규칙을 보여 주기 위한 임의의 이름이며, 실제 도메인과 무관합니다. 도메인이 정해지면 그 이슈에서 추가합니다.
 
 - 메서드 접두어: 단건 조회 `get`(없으면 예외), 조건 조회 `find`, 생성 `create`, 수정 `update`, 삭제 `delete`.
 - 계층 클래스는 `{도메인}Controller`·`{도메인}Service`·`{도메인}Repository`, DTO는 `{도메인}{동작}Request`·`{도메인}{동작}Response`(가능하면 `record`), 코드 enum은 `{도메인}ErrorCode`·`{도메인}SuccessCode`입니다.
@@ -64,10 +66,10 @@ org.sopt.sopkathon
 - 응답 본문은 `{ status, code, message, data }`입니다.
 - 성공은 `SuccessCode`, 실패는 `ErrorCode`를 구현한 enum으로 관리합니다. 공통은 `common/code`(`GlobalErrorCode`), 도메인별은 `domain/<도메인>/code`에 둡니다. 상태값은 코드 enum이 가집니다. (조회 200, 생성 201)
 - 목록 응답에는 `page`, `size`, `totalElements`, `totalPages`를 포함합니다.
-- 다중 선택 필터는 `?region=서울&region=경기`처럼 같은 파라미터를 반복합니다.
+- 다중 선택 필터는 `?type=A&type=B`처럼 같은 파라미터를 반복합니다.
 
 ```java
-return CommonResponse.success(JobSuccessCode.JOB_FOUND, JobDetailResponse.of(job));
+return CommonResponse.success(XxxSuccessCode.XXX_FOUND, XxxResponse.of(xxx));
 ```
 
 ## 예외 처리

@@ -2,6 +2,19 @@
 
 39기 PLAY SOPT 솝커톤 iOS 1조 서버 레포지토리 🫰💃
 
+<br />
+
+## 👥 팀원 소개
+
+### Backend
+
+| <img src="https://github.com/joobogyeong.png?size=120" width="120" alt="주보경" /> | <img src="https://github.com/eun-seoo.png?size=120" width="120" alt="김은서" /> | <img src="https://github.com/KateteDeveloper.png?size=120" width="120" alt="채윤지" /> |
+| :---: | :---: | :---: |
+| [주보경](https://github.com/joobogyeong) | [김은서](https://github.com/eun-seoo) | [채윤지](https://github.com/KateteDeveloper) |
+| BE 파트장 | BE | BE |
+
+<br />
+
 ## 기술 스택
 
 | 구분 | 기술 | 선정 이유 |

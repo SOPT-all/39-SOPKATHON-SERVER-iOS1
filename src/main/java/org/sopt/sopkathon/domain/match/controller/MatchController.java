@@ -4,12 +4,14 @@ import lombok.RequiredArgsConstructor;
 import org.sopt.sopkathon.common.dto.CommonResponse;
 import org.sopt.sopkathon.domain.match.code.MatchSuccessCode;
 import org.sopt.sopkathon.domain.match.controller.docs.MatchControllerDocs;
+import org.sopt.sopkathon.domain.match.dto.MatchResultResponse;
 import org.sopt.sopkathon.domain.match.dto.request.MatchGameTypeRequest;
 import org.sopt.sopkathon.domain.match.dto.request.MatchReadyRequest;
 import org.sopt.sopkathon.domain.match.dto.request.MatchVoiceRecordSubmitRequest;
 import org.sopt.sopkathon.domain.match.dto.response.MatchGameTypeResponse;
 import org.sopt.sopkathon.domain.match.dto.response.MatchGameTypeUpdateResponse;
 import org.sopt.sopkathon.domain.match.dto.response.MatchReadyResponse;
+import org.sopt.sopkathon.domain.match.dto.response.MatchStatusResponse;
 import org.sopt.sopkathon.domain.match.dto.response.MatchVoiceRecordSubmitResponse;
 import org.sopt.sopkathon.domain.match.dto.response.MatchVoiceResultResponse;
 import org.sopt.sopkathon.domain.match.entity.GameType;
@@ -78,5 +80,23 @@ public class MatchController implements MatchControllerDocs {
     @GetMapping("/game-type")
     public ResponseEntity<CommonResponse<MatchGameTypeResponse>> getGameType(@PathVariable Long matchId) {
         return CommonResponse.success(MatchSuccessCode.GAME_TYPE_FETCHED, matchService.getGameType(matchId));
+    }
+
+    @Override
+    @GetMapping("/result")
+    public ResponseEntity<CommonResponse<MatchResultResponse>> getMatchResult(
+            @PathVariable Long matchId,
+            @RequestHeader("X-Demo-Member-Id") Long memberId
+    ) {
+        MatchResultResponse response = matchService.getMatchResult(matchId, memberId);
+        return CommonResponse.success(MatchSuccessCode.MATCH_RESULT_FOUND, response);
+    }
+
+    @Override
+    @GetMapping("/status")
+    public ResponseEntity<CommonResponse<MatchStatusResponse>> getMatchStatus(
+            @PathVariable Long matchId,
+            @RequestHeader("X-Demo-Member-Id") Long memberId) {
+        return CommonResponse.success(MatchSuccessCode.MATCH_STATUS_FETCHED, matchService.getMatchStatus(matchId, memberId));
     }
 }

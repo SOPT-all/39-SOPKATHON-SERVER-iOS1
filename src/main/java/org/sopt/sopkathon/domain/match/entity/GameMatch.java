@@ -87,6 +87,13 @@ public class GameMatch {
         this.status = MatchStatus.IN_PROGRESS;
     }
 
+    public void finishGame() {
+        if (status == MatchStatus.IN_PROGRESS) {
+            this.finishedAt = LocalDateTime.now(MATCH_ZONE).truncatedTo(ChronoUnit.MICROS);
+            this.status = MatchStatus.FINISHED;
+        }
+    }
+
     public OffsetDateTime getStartsAtWithOffset() {
         return startsAt == null ? null : startsAt.atZone(MATCH_ZONE).toOffsetDateTime();
     }

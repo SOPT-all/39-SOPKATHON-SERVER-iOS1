@@ -9,10 +9,13 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.sopt.sopkathon.common.exception.BusinessException;
 import org.sopt.sopkathon.domain.match.code.MatchErrorCode;
+import org.sopt.sopkathon.domain.match.dto.MatchResultResponse.TeamResultResponse;
+import org.sopt.sopkathon.domain.match.dto.MatchResultResponse;
 import org.sopt.sopkathon.domain.match.dto.request.MatchVoiceRecordSubmitRequest;
 import org.sopt.sopkathon.domain.match.dto.response.MatchGameTypeResponse;
 import org.sopt.sopkathon.domain.match.dto.response.MatchGameTypeUpdateResponse;
 import org.sopt.sopkathon.domain.match.dto.response.MatchReadyResponse;
+import org.sopt.sopkathon.domain.match.dto.response.MatchStatusResponse;
 import org.sopt.sopkathon.domain.match.dto.response.MatchVoiceRecordSubmitResponse;
 import org.sopt.sopkathon.domain.match.dto.response.MatchVoiceResultResponse.TeamResult;
 import org.sopt.sopkathon.domain.match.dto.response.MatchVoiceResultResponse;
@@ -25,6 +28,7 @@ import org.sopt.sopkathon.domain.match.entity.MatchTeam;
 import org.sopt.sopkathon.domain.match.entity.RecordStatus;
 import org.sopt.sopkathon.domain.match.repository.GameMatchRepository;
 import org.sopt.sopkathon.domain.match.repository.MatchParticipantRepository;
+import org.sopt.sopkathon.domain.match.repository.MatchTeamRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +40,7 @@ public class MatchService {
     private static final int TEAM_COUNT = 2;
 
     private final GameMatchRepository gameMatchRepository;
+    private final MatchTeamRepository matchTeamRepository;
     private final MatchParticipantRepository matchParticipantRepository;
 
     @Transactional
@@ -92,6 +97,15 @@ public class MatchService {
         GameMatch match = gameMatchRepository.findById(matchId)
                 .orElseThrow(() -> new BusinessException(MatchErrorCode.MATCH_NOT_FOUND));
         return MatchGameTypeResponse.of(match);
+    }
+
+    public MatchStatusResponse getMatchStatus(Long matchId, Long memberId) {
+        GameMatch match = gameMatchRepository.findById(matchId)
+                .orElseThrow(() -> new BusinessException(MatchErrorCode.MATCH_NOT_FOUND));
+        if (!matchParticipantRepository.existsByMatchTeamGameMatchIdAndMemberId(matchId, memberId)) {
+            throw new BusinessException(MatchErrorCode.MATCH_PARTICIPANT_FORBIDDEN);
+        }
+        return new MatchStatusResponse(match.getId(), match.getStatus());
     }
 
     private MatchParticipant getParticipant(List<MatchParticipant> participants, Long memberId) {
@@ -200,6 +214,136 @@ public class MatchService {
         gameMatch.finish(now);
     }
 
+
     private record TeamTotal(MatchTeam team, BigDecimal total) {
+    }
+
+    public MatchResultResponse getMatchResult(Long matchId, Long memberId) {
+        GameMatch gameMatch = gameMatchRepository.findById(matchId)
+                .orElseThrow(() -> new BusinessException(MatchErrorCode.MATCH_NOT_FOUND));
+
+        if (gameMatch.getStatus() != MatchStatus.FINISHED) {
+            throw new BusinessException(MatchErrorCode.MATCH_RESULT_NOT_READY);
+        }
+
+        MatchParticipant myParticipant = matchParticipantRepository
+                .findByMatchTeamGameMatchIdAndMemberId(matchId, memberId)
+                .orElseThrow(() -> new BusinessException(MatchErrorCode.MATCH_PARTICIPANT_FORBIDDEN));
+
+        List<MatchTeam> teams = matchTeamRepository.findAllByGameMatchIdOrderByTeamSlot(matchId);
+        if (teams.size() != 2 || gameMatch.getGameType() == null) {
+            throw new BusinessException(MatchErrorCode.MATCH_RESULT_DATA_INVALID);
+        }
+
+        MatchTeam myTeam = myParticipant.getMatchTeam();
+        MatchTeam opponentTeam = teams.stream()
+                .filter(team -> !team.getId().equals(myTeam.getId()))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(MatchErrorCode.MATCH_RESULT_DATA_INVALID));
+
+        TeamScore myScore = calculateTeamScore(myTeam, gameMatch.getGameType());
+        TeamScore opponentScore = calculateTeamScore(opponentTeam, gameMatch.getGameType());
+        MatchResult myResult = decideResult(myScore.value(), opponentScore.value(), gameMatch.getGameType());
+        MatchResult opponentResult = oppositeOf(myResult);
+
+        List<TeamResultResponse> resultTeams = teams.stream()
+                .map(team -> toTeamResultResponse(
+                        team,
+                        team.getId().equals(myTeam.getId()) ? myScore : opponentScore,
+                        team.getId().equals(myTeam.getId()) ? myResult : opponentResult
+                ))
+                .toList();
+
+        return new MatchResultResponse(
+                gameMatch.getId(),
+                gameMatch.getStatus(),
+                gameMatch.getGameType(),
+                myResult == MatchResult.DRAW ? null : (myResult == MatchResult.WIN
+                        ? myTeam.getTeamSlot()
+                        : opponentTeam.getTeamSlot()),
+                resultTeams
+        );
+    }
+
+    private TeamScore calculateTeamScore(MatchTeam team, GameType gameType) {
+        List<MatchParticipant> participants = matchParticipantRepository.findAllByMatchTeamId(team.getId());
+        if (participants.isEmpty() || participants.stream()
+                .anyMatch(participant -> participant.getRecordStatus() != RecordStatus.SUBMITTED)) {
+            throw new BusinessException(MatchErrorCode.MATCH_RESULT_DATA_INVALID);
+        }
+
+        if (gameType == GameType.HORSE_TAP) {
+            long totalFinishTime = participants.stream()
+                    .map(MatchParticipant::getFinishTimeMilliseconds)
+                    .mapToLong(this::requireFinishTime)
+                    .sum();
+            return TeamScore.forHorseRace(totalFinishTime);
+        }
+
+        BigDecimal totalMaxDecibel = participants.stream()
+                .map(MatchParticipant::getVoiceScore)
+                .map(this::requireVoiceScore)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return TeamScore.forVoiceTug(totalMaxDecibel);
+    }
+
+    private long requireFinishTime(Long finishTimeMilliseconds) {
+        if (finishTimeMilliseconds == null) {
+            throw new BusinessException(MatchErrorCode.MATCH_RESULT_DATA_INVALID);
+        }
+        return finishTimeMilliseconds;
+    }
+
+    private BigDecimal requireVoiceScore(BigDecimal voiceScore) {
+        if (voiceScore == null) {
+            throw new BusinessException(MatchErrorCode.MATCH_RESULT_DATA_INVALID);
+        }
+        return voiceScore;
+    }
+
+    private MatchResult decideResult(BigDecimal myScore, BigDecimal opponentScore, GameType gameType) {
+        int comparison = myScore.compareTo(opponentScore);
+        if (comparison == 0) {
+            return MatchResult.DRAW;
+        }
+        boolean isMyTeamBetter = gameType == GameType.HORSE_TAP ? comparison < 0 : comparison > 0;
+        return isMyTeamBetter ? MatchResult.WIN : MatchResult.LOSE;
+    }
+
+    private MatchResult oppositeOf(MatchResult result) {
+        return switch (result) {
+            case WIN -> MatchResult.LOSE;
+            case LOSE -> MatchResult.WIN;
+            case DRAW -> MatchResult.DRAW;
+        };
+    }
+
+    private TeamResultResponse toTeamResultResponse(MatchTeam team, TeamScore score, MatchResult result) {
+        return new TeamResultResponse(
+                team.getTeamSlot(),
+                team.getSchoolClass().getSchool().getName()
+                        + " " + team.getSchoolClass().getGrade()
+                        + "학년 " + team.getSchoolClass().getClassNumber() + "반",
+                result,
+                score.totalFinishTimeMilliseconds(),
+                score.totalMaxDecibel()
+        );
+    }
+
+    private record TeamScore(Long totalFinishTimeMilliseconds, BigDecimal totalMaxDecibel) {
+
+        static TeamScore forHorseRace(long totalFinishTimeMilliseconds) {
+            return new TeamScore(totalFinishTimeMilliseconds, null);
+        }
+
+        static TeamScore forVoiceTug(BigDecimal totalMaxDecibel) {
+            return new TeamScore(null, totalMaxDecibel);
+        }
+
+        BigDecimal value() {
+            return totalFinishTimeMilliseconds != null
+                    ? BigDecimal.valueOf(totalFinishTimeMilliseconds)
+                    : totalMaxDecibel;
+        }
     }
 }

@@ -17,7 +17,9 @@ public enum MatchErrorCode implements ErrorCode {
     MATCH_PARTICIPANT_FORBIDDEN(HttpStatus.FORBIDDEN, "경기에 참여한 멤버만 접근할 수 있습니다."),
     MATCH_READY_UPDATE_NOT_ALLOWED(HttpStatus.CONFLICT, "현재 경기 상태에서는 준비 완료로 변경할 수 없습니다."),
     MATCH_NOT_READY(HttpStatus.CONFLICT, "모든 참가자가 준비 완료해야 종목을 선택할 수 있습니다."),
-    MATCH_GAME_TYPE_SELECTION_NOT_ALLOWED(HttpStatus.CONFLICT, "현재 경기에서는 종목을 확정할 수 없습니다.");
+    MATCH_GAME_TYPE_SELECTION_NOT_ALLOWED(HttpStatus.CONFLICT, "현재 경기에서는 종목을 확정할 수 없습니다."),
+    MATCH_RESULT_NOT_READY(HttpStatus.CONFLICT, "경기 결과가 아직 확정되지 않았습니다."),
+    MATCH_RESULT_DATA_INVALID(HttpStatus.CONFLICT, "경기 결과를 계산할 데이터가 올바르지 않습니다.");
 
     private final HttpStatus status;
     private final String message;

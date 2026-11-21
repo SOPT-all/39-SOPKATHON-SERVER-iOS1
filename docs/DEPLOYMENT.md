@@ -14,6 +14,12 @@
 - `dev`에서 JPA는 스키마를 검증합니다. 엔티티 변경이 들어가면 DB 관리자나 지정 배포 담당자가 호환되는 스키마 변경을 먼저 적용합니다. JAR 롤백은 DB 스키마를 되돌리지 않습니다.
 - AWS 콘솔 비밀번호, SSH 개인 키, 운영 DB 비밀번호는 채팅이나 저장소에 올리지 않습니다. RDS 관리자 자격 증명은 AWS Secrets Manager에, API 서버의 DB 환경 변수는 EC2의 `/etc/sopkathon/app.env`에 있습니다.
 
+## 영상 저장소
+
+- 서울 리전의 `sopkathon-ios1-dev-video-storage` CloudFormation 스택에서 버킷 이름(`VideoBucketName`)과 S3 Gateway Endpoint ID(`S3EndpointId`)를 확인합니다.
+- Endpoint는 API EC2가 있는 서브넷의 라우팅 테이블에 연결됩니다. EC2 실행 역할의 `SopkathonVideoStorage` 정책은 해당 버킷의 `videos/` 경로에 `s3:GetObject`, `s3:PutObject`를 허용합니다.
+- 버킷은 공개 접근을 차단하고 HTTPS만 허용합니다. iOS에서 서명 URL로 S3에 직접 접근할 수 있도록 버킷 정책에 VPC Endpoint 경로를 강제하는 조건은 두지 않습니다.
+
 ## HTTPS
 
 프로젝트명이 정해지면 내도메인.한국에서 선택한 호스트의 A 레코드를 EC2 Elastic IP로 지정합니다. DNS가 반영되면 Nginx 사이트에 호스트 이름을 설정하고 Certbot으로 HTTPS와 HTTP 리다이렉트를 적용합니다. `sudo certbot renew --dry-run`과 iOS 기기의 실제 API 호출로 완료를 확인합니다.

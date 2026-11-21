@@ -2,6 +2,7 @@ package org.sopt.sopkathon.domain.member.controller.docs;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -18,7 +19,8 @@ public interface MemberControllerDocs {
     ResponseEntity<CommonResponse<MemberHomeResponse>> getHome(
             @Parameter(description = "현재 기기의 시연용 멤버 ID", example = "1")
             @Positive(message = "멤버 ID는 1 이상이어야 합니다.") Long memberId,
-            @Parameter(description = "학년", example = "1")
+            @Parameter(description = "학년", example = "1",
+                    schema = @Schema(type = "integer", format = "int32", minimum = "1"))
             @NotNull(message = "학년은 필수입니다.")
             @Positive(message = "학년은 1 이상이어야 합니다.") Byte grade,
             @Parameter(description = "반 번호", example = "1")

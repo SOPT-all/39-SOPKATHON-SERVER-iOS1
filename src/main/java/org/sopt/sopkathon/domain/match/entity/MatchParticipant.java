@@ -46,6 +46,9 @@ public class MatchParticipant {
     @JoinColumn(name = "member_id", nullable = false, foreignKey = @ForeignKey(name = "fk_match_participant_member"))
     private Member member;
 
+    @Column(name = "is_ready", nullable = false)
+    private boolean isReady;
+
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "record_status", nullable = false, length = 16)

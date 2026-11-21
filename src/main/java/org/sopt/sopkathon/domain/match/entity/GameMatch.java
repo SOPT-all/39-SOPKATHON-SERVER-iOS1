@@ -31,7 +31,7 @@ public class GameMatch {
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
-    @Column(name = "game_type", nullable = false, length = 20)
+    @Column(name = "game_type", length = 20)
     private GameType gameType;
 
     @Column(name = "team_size", nullable = false)

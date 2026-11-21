@@ -11,6 +11,6 @@ public interface MatchParticipantRepository extends JpaRepository<MatchParticipa
     @EntityGraph(attributePaths = "matchTeam")
     Optional<MatchParticipant> findByMatchTeamGameMatchIdAndMemberId(Long gameMatchId, Long memberId);
 
-    @EntityGraph(attributePaths = "matchTeam")
-    List<MatchParticipant> findAllByMatchTeamGameMatchId(Long gameMatchId);
+    @EntityGraph(attributePaths = {"matchTeam", "member"})
+    List<MatchParticipant> findAllByMatchTeamGameMatchId(Long matchId);
 }

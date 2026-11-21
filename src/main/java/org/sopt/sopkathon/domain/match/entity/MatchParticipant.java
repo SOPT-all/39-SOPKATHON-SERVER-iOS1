@@ -74,4 +74,8 @@ public class MatchParticipant {
         this.recordStatus = RecordStatus.SUBMITTED;
         this.submittedAt = submittedAt;
     }
+
+    public void markReady() {
+        isReady = true;
+    }
 }

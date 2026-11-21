@@ -65,4 +65,10 @@ public class GameMatch {
         this.status = MatchStatus.FINISHED;
         this.finishedAt = finishedAt;
     }
+
+    public void completePreparation() {
+        if (status == MatchStatus.SEARCHING) {
+            status = MatchStatus.FOUND;
+        }
+    }
 }

@@ -4,12 +4,15 @@ import lombok.RequiredArgsConstructor;
 import org.sopt.sopkathon.common.dto.CommonResponse;
 import org.sopt.sopkathon.domain.match.code.MatchSuccessCode;
 import org.sopt.sopkathon.domain.match.controller.docs.MatchControllerDocs;
+import org.sopt.sopkathon.domain.match.dto.request.MatchReadyRequest;
 import org.sopt.sopkathon.domain.match.dto.request.MatchVoiceRecordSubmitRequest;
+import org.sopt.sopkathon.domain.match.dto.response.MatchReadyResponse;
 import org.sopt.sopkathon.domain.match.dto.response.MatchVoiceRecordSubmitResponse;
 import org.sopt.sopkathon.domain.match.dto.response.MatchVoiceResultResponse;
 import org.sopt.sopkathon.domain.match.service.MatchService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,14 +21,31 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/game-matches")
+@RequestMapping("/api/v1/game-matches/{matchId}")
 @RequiredArgsConstructor
 public class MatchController implements MatchControllerDocs {
 
     private final MatchService matchService;
 
     @Override
-    @PutMapping("/{matchId}/participants/me/voice-record")
+    @PatchMapping("/participants/me/ready")
+    public ResponseEntity<CommonResponse<MatchReadyResponse>> updateReady(
+            @PathVariable Long matchId,
+            @RequestHeader("X-Demo-Member-Id") Long memberId,
+            @RequestBody MatchReadyRequest request) {
+        return CommonResponse.success(MatchSuccessCode.MATCH_READY_UPDATED, matchService.updateReady(matchId, memberId));
+    }
+
+    @Override
+    @GetMapping("/ready")
+    public ResponseEntity<CommonResponse<MatchReadyResponse>> getReady(
+            @PathVariable Long matchId,
+            @RequestHeader("X-Demo-Member-Id") Long memberId) {
+        return CommonResponse.success(MatchSuccessCode.MATCH_READY_FETCHED, matchService.getReady(matchId, memberId));
+    }
+
+    @Override
+    @PutMapping("/participants/me/voice-record")
     public ResponseEntity<CommonResponse<MatchVoiceRecordSubmitResponse>> submitVoiceRecord(
             @PathVariable Long matchId,
             @RequestHeader("X-Demo-Member-Id") Long memberId,
@@ -35,7 +55,7 @@ public class MatchController implements MatchControllerDocs {
     }
 
     @Override
-    @GetMapping("/{matchId}/voice-result")
+    @GetMapping("/voice-result")
     public ResponseEntity<CommonResponse<MatchVoiceResultResponse>> getVoiceResult(@PathVariable Long matchId) {
         return CommonResponse.success(MatchSuccessCode.VOICE_RESULT_FETCHED, matchService.getVoiceResult(matchId));
     }

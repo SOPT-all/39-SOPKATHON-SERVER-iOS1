@@ -10,6 +10,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -62,6 +63,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<CommonResponse<Void>> handleMissingParameter(MissingServletRequestParameterException e) {
         String message = "'" + e.getParameterName() + "' 파라미터는 필수입니다.";
+        return CommonResponse.error(GlobalErrorCode.MISSING_PARAMETER, message);
+    }
+
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<CommonResponse<Void>> handleMissingHeader(MissingRequestHeaderException e) {
+        String message = "'" + e.getHeaderName() + "' 헤더는 필수입니다.";
         return CommonResponse.error(GlobalErrorCode.MISSING_PARAMETER, message);
     }
 

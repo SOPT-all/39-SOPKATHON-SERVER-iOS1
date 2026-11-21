@@ -60,4 +60,10 @@ public class GameMatch {
         this.teamSize = teamSize;
         this.status = MatchStatus.SEARCHING;
     }
+
+    public void completePreparation() {
+        if (status == MatchStatus.SEARCHING) {
+            status = MatchStatus.FOUND;
+        }
+    }
 }

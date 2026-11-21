@@ -1,12 +1,12 @@
 ---
 name: spec
-description: "PRD를 바탕으로 기능 하나의 스펙 문서(docs/specs/<id>.md)를 작성하고, 대시보드에 올려 기획자 컨펌을 받게 한다. GitHub 이슈는 만들지 않는다(/code가 만든다). 사용자가 /spec 또는 '스펙 만들어줘'라고 할 때 사용."
+description: "PRD를 바탕으로 기능 하나의 스펙을 작성하고, 개발자 승인 후 대시보드 레포의 specs 브랜치에 올려 기획자 컨펌을 받게 한다. GitHub 이슈는 만들지 않는다(/code가 만든다). 사용자가 /spec 또는 '스펙 만들어줘'라고 할 때 사용."
 argument-hint: "기능 설명 또는 기존 스펙 ID(수정 시)"
 ---
 
 # /spec — 기능 스펙 작성 (1단계)
 
-기능 하나의 **무엇을·왜**를 정리해 스펙 문서로 만들고 대시보드에 올리게 한다. 기획자가 대시보드에서 컨펌해야 `/code`로 넘어갈 수 있다.
+기능 하나의 **무엇을·왜**를 정리해 스펙 문서로 만들고, 사용자가 승인하면 대시보드에 올린다. 기획자가 대시보드에서 컨펌해야 `/code`로 넘어갈 수 있다.
 **GitHub 이슈는 만들지 않는다.** 이슈와 브랜치는 `/code`가 만든다.
 입력(`$ARGUMENTS`)은 기능 설명이거나, 수정할 기존 스펙 ID(`login-api`)다. 입력은 이 대화 안에 있으니 되묻지 않는다. 비어 있을 때만 한 번 묻는다.
 
@@ -15,25 +15,34 @@ argument-hint: "기능 설명 또는 기존 스펙 ID(수정 시)"
 ## 파이프라인
 
 ```text
-/spec → [대시보드 업로드] → [기획자 컨펌] → /code(이슈·브랜치 생성) → /review → /pr → [개발자 컨펌]
+/spec → [개발자 승인 → 대시보드 업로드] → [기획자 컨펌] → /code(이슈·브랜치 생성) → /review → /pr → [개발자 컨펌]
 ```
 
-스펙의 단일 출처는 **대시보드에 올라간 스펙**이다. 로컬 `docs/specs/<id>.md`는 올리기 위한 초안 파일이며 커밋하지 않는다.
+스펙의 단일 출처는 **대시보드 레포의 `specs` 브랜치에 있는 `specs/<id>.md`**다. 서버 레포에는 스펙 파일을 만들지 않는다. 아래 `<R>`은 `docs/ai/dashboard.json`의 `dashboardRepo`다. 비어 있으면 스펙을 올릴 곳이 없으니 알리고 멈춘다.
 
 ## 절차
 
 1. **맥락 읽기**: `AGENTS.md`, `README.md`, `docs/prd/prd.md`(있으면)를 읽는다. 스펙은 PRD의 어느 항목에서 나왔는지 근거(`PRD §번호`)를 단다. PRD가 없으면 그 사실을 알리고 입력만으로 쓴다.
-2. **기존 스펙 확인**: `docs/ai/dashboard.json`의 `firebaseProjectId`로 대시보드의 스펙 목록을 읽는다(공개 읽기, 로그인 불필요).
+2. **기존 스펙 확인**: 올라가 있는 스펙 목록을 읽는다. 404면 아직 스펙이 없는 것이다.
    ```bash
-   curl -s "https://firestore.googleapis.com/v1/projects/<firebaseProjectId>/databases/(default)/documents/specs"
+   gh api "repos/<R>/contents/specs?ref=specs" --jq '.[].name'
+   gh api "repos/<R>/contents/specs/<id>.md?ref=specs" -H "Accept: application/vnd.github.raw+json"
    ```
-   각 문서의 이름 끝이 ID, `fields.title.stringValue`·`fields.body.stringValue`가 제목·본문이다. ID가 주어졌으면 그 본문을 개정한다. 아니면 비슷한 스펙이 이미 있는지 확인하고 있으면 사용자에게 알린다. `firebaseProjectId`가 비어 있거나 요청이 실패하면 이 단계는 건너뛰고 그 사실을 알린다.
+   ID가 주어졌으면 그 본문을 읽어 개정한다. 아니면 비슷한 스펙이 이미 있는지 확인하고 있으면 사용자에게 알린다. `gh`가 실패하면 `gh auth login`을 안내한다.
 3. **ID 정하기**: 영문 소문자·숫자·하이픈 40자 이내의 짧은 슬러그(예: `login-api`, `vote-create`). 새 스펙이면 기존 ID와 겹치지 않게 정한다. 개정이면 기존 ID를 그대로 쓴다.
 4. **스펙 작성**: 아래 템플릿을 한국어로 채운다. 첫 줄은 `# 제목`(한글 명사형, 예: `투표 생성 API`)이다. 모호한 곳은 합리적으로 추정하되 `[확인 필요]`로 표시해 기획자가 볼 수 있게 한다. **구현 방법(클래스·테이블 설계)은 쓰지 않는다.** 단, 서버 프로젝트이므로 API는 "초안" 수준의 URL·메서드·주요 필드까지만 적는다.
-5. **미리보기 후 확인**: ID, 제목, 본문을 사용자에게 보여 주고 저장해도 되는지 확인한다. 확인 전에는 파일을 만들지 않는다.
-6. **파일 저장**: `docs/specs/<id>.md`에 쓴다. 이 폴더는 커밋하지 않는다. `.gitignore`에 `docs/specs/`가 없으면 추가를 제안한다.
-7. **보고**: 파일 경로와 아래를 안내한다.
-   - 대시보드(`docs/ai/dashboard.json`의 `dashboardUrl`)에 **개발자 로그인** → **스펙 업로드** → 파일을 고르면 ID·제목·본문이 채워지니 **업로드**를 누른다. (같은 ID로 다시 올리면 개정이며, 이전 승인은 "재작성 필요"가 된다.)
+5. **미리보기 후 승인**: ID, 제목, 본문을 사용자에게 보여 주고 **"대시보드에 올릴까요?"**라고 묻는다. 승인 전에는 아무것도 올리지 않는다. 승인하면 바로 6단계로 간다.
+6. **올리기** (승인 후)
+   - 본문을 임시 파일로 만든다 (끝나면 지운다).
+   - `specs` 브랜치가 없으면 main에서 만든다 (`gh api "repos/<R>/branches/specs"`가 404일 때):
+     `gh api repos/<R>/git/refs -f ref=refs/heads/specs -f sha=$(gh api repos/<R>/commits/main --jq .sha)`
+   - 개정이면 기존 파일의 sha를 구한다: `gh api "repos/<R>/contents/specs/<id>.md?ref=specs" --jq .sha`
+   - 커밋한다 (base64는 `node -e "process.stdout.write(require('fs').readFileSync(process.argv[1]).toString('base64'))" <파일>`):
+     `gh api -X PUT repos/<R>/contents/specs/<id>.md -f message="spec: <제목>" -f branch=specs -f content="<base64>"` (개정이면 `-f sha=<sha>` 추가)
+   - 403/404면 대시보드 레포 쓰기 권한이 없는 것이니 그렇게 알린다. `main`에는 커밋하지 않는다.
+   - **대시보드 갱신 요청**: `gh workflow run deploy.yml -R <R>`를 실행한다(반영까지 약 30초). 실패해도 무시하고, 보고에 "대시보드 갱신은 수동으로 필요할 수 있음"이라고 적는다.
+7. **보고**: 올린 스펙 ID와 대시보드 주소(`dashboardUrl`)를 알리고 안내한다.
+   - 대시보드에 약 30초 뒤 나타난다. 같은 ID로 다시 올리면 개정이며, 이전 승인은 "재작성 필요"가 된다.
    - 기획자에게 대시보드 주소를 직접 전달해 승인을 받는다 (알림이 자동으로 가지 않는다).
    - 승인되면 `/code <id>`로 진행한다.
 

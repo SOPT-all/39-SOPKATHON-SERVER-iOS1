@@ -8,18 +8,18 @@ argument-hint: "스펙 ID (예: login-api). 이슈가 이미 있는 기존 스�
 
 컨펌된 스펙(`$ARGUMENTS`)으로 **GitHub 이슈를 만들고**, 구현하고, **PR 초안까지 써 둔다**. ID가 없으면 한 번만 묻는다. 필요한 만큼만 구현한다: 스펙을 만족하는 가장 단순한 코드가 목표이고, 나중에 `/review`가 오버엔지니어링을 점검한다.
 
-스펙은 대시보드(Firestore)에 있다. `docs/ai/dashboard.json`의 `firebaseProjectId`를 `<P>`라 하자. 읽기는 공개라 로그인이 필요 없다. 값은 `fields.<이름>.stringValue`에 들어 있다.
+스펙은 대시보드 레포의 `specs` 브랜치에, 기획자 승인은 대시보드(Firestore)에 있다. `docs/ai/dashboard.json`의 `dashboardRepo`를 `<R>`, `firebaseProjectId`를 `<P>`라 하자. 승인은 공개 읽기라 로그인이 필요 없고, 값은 `fields.<이름>.stringValue`에 들어 있다.
 
 ```bash
-curl -s "https://firestore.googleapis.com/v1/projects/<P>/databases/(default)/documents/specs/<id>"
+gh api "repos/<R>/contents/specs/<id>.md?ref=specs" -H "Accept: application/vnd.github.raw+json"
 curl -s "https://firestore.googleapis.com/v1/projects/<P>/databases/(default)/documents/approvals/<id>"
 ```
 
 ## 1. 게이트 (실패하면 중단하고 이유만 알린다)
 
-- **스펙 존재**: `specs/<id>`가 404면 중단한다: "대시보드에 업로드된 스펙이 아닙니다. `/spec`으로 만든 파일을 대시보드의 스펙 업로드로 올리세요." 본문은 `fields.body`, 제목은 `fields.title`이다.
+- **스펙 존재**: `specs/<id>.md`가 404면 중단한다: "대시보드에 올라간 스펙이 아닙니다. `/spec`으로 먼저 만들어 올리세요." 본문은 파일 내용 전체, 제목은 첫 줄 `# 제목`이다.
 - **기획자 컨펌**: `approvals/<id>`의 `fields.status.stringValue`가 `approved`면 통과다(`fields.by`, `fields.comment`는 보고 시 인용). 문서가 없거나(404) `changes`면 중단한다: "기획자 컨펌 전입니다. 대시보드에서 승인을 받으세요 (`dashboardUrl`)." `changes`면 코멘트를 보여 주고 `/spec <id>`로 개정하라고 안내한다.
-- **승인 이후 개정 여부**: `approvals`의 `fields.specHash`는 승인 당시 스펙 본문의 SHA-256(소문자 hex, UTF-8)이다. 스펙 본문을 임시 파일에 저장해 `node -e "process.stdout.write(require('crypto').createHash('sha256').update(require('fs').readFileSync(0,'utf8')).digest('hex'))" < 파일`로 계산해 비교한다. 다르면 승인 이후 스펙이 바뀐 것이니 중단하고 재승인을 안내한다.
+- **승인 이후 개정 여부**: `approvals`의 `fields.specHash`는 승인 당시 스펙 본문의 SHA-256(소문자 hex, UTF-8)이다. 스펙 파일 내용을 임시 파일에 그대로 저장해 `node -e "process.stdout.write(require('crypto').createHash('sha256').update(require('fs').readFileSync(0,'utf8')).digest('hex'))" < 파일`로 계산해 비교한다. 다르면 승인 이후 스펙이 바뀐 것이니 중단하고 재승인을 안내한다.
 - **기존 이슈**: 이 스펙의 이슈가 이미 있는지 `gh issue list --label spec --state all --search "sopkathon:spec:<id> in:body" --json number,state`로 확인한다. 열린 이슈가 있으면 새로 만들지 않고 그 번호를 `N`으로 쓴다(이어서 작업). 닫힌 이슈만 있으면 중단하고 알린다.
 - **이슈가 이미 있는 기존 스펙**: 인자가 숫자(이슈 번호)면 대시보드 스펙이 없는 예전 방식 스펙이다. 이슈 본문이 스펙이고, 승인 문서는 `approvals/issue-<번호>`다. 이슈는 새로 만들지 않고 번호를 `N`으로 쓴다.
 - 워킹 트리가 깨끗한지 `git status --porcelain`으로 확인한다. 변경이 있으면 사용자에게 알리고 멈춘다.

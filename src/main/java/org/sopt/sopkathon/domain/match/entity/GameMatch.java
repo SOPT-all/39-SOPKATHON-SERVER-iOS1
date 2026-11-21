@@ -10,6 +10,9 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,6 +27,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @EntityListeners(AuditingEntityListener.class)
 @Table(name = "game_match")
 public class GameMatch {
+
+    private static final ZoneId MATCH_ZONE = ZoneId.of("Asia/Seoul");
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -65,5 +70,19 @@ public class GameMatch {
         if (status == MatchStatus.SEARCHING) {
             status = MatchStatus.FOUND;
         }
+    }
+
+    public boolean hasSelectedGameType() {
+        return gameType != null && startsAt != null;
+    }
+
+    public void startGame(GameType gameType) {
+        this.gameType = gameType;
+        this.startsAt = LocalDateTime.now(MATCH_ZONE).truncatedTo(ChronoUnit.MICROS);
+        this.status = MatchStatus.IN_PROGRESS;
+    }
+
+    public OffsetDateTime getStartsAtWithOffset() {
+        return startsAt == null ? null : startsAt.atZone(MATCH_ZONE).toOffsetDateTime();
     }
 }

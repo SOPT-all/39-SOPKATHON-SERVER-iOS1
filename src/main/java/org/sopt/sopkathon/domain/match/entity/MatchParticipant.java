@@ -68,4 +68,8 @@ public class MatchParticipant {
         this.member = member;
         this.recordStatus = RecordStatus.PENDING;
     }
+
+    public void markReady() {
+        isReady = true;
+    }
 }

@@ -10,6 +10,7 @@ import org.sopt.sopkathon.domain.match.dto.MatchResultResponse.TeamResultRespons
 import org.sopt.sopkathon.domain.match.dto.response.MatchGameTypeResponse;
 import org.sopt.sopkathon.domain.match.dto.response.MatchGameTypeUpdateResponse;
 import org.sopt.sopkathon.domain.match.dto.response.MatchReadyResponse;
+import org.sopt.sopkathon.domain.match.dto.response.MatchStatusResponse;
 import org.sopt.sopkathon.domain.match.entity.GameMatch;
 import org.sopt.sopkathon.domain.match.entity.GameType;
 import org.sopt.sopkathon.domain.match.entity.MatchParticipant;
@@ -86,6 +87,15 @@ public class MatchService {
         GameMatch match = gameMatchRepository.findById(matchId)
                 .orElseThrow(() -> new BusinessException(MatchErrorCode.MATCH_NOT_FOUND));
         return MatchGameTypeResponse.of(match);
+    }
+
+    public MatchStatusResponse getMatchStatus(Long matchId, Long memberId) {
+        GameMatch match = gameMatchRepository.findById(matchId)
+                .orElseThrow(() -> new BusinessException(MatchErrorCode.MATCH_NOT_FOUND));
+        if (!matchParticipantRepository.existsByMatchTeamGameMatchIdAndMemberId(matchId, memberId)) {
+            throw new BusinessException(MatchErrorCode.MATCH_PARTICIPANT_FORBIDDEN);
+        }
+        return new MatchStatusResponse(match.getId(), match.getStatus());
     }
 
     private MatchParticipant getParticipant(List<MatchParticipant> participants, Long memberId) {

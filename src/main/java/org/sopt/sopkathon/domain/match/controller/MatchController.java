@@ -10,6 +10,7 @@ import org.sopt.sopkathon.domain.match.dto.request.MatchReadyRequest;
 import org.sopt.sopkathon.domain.match.dto.response.MatchGameTypeResponse;
 import org.sopt.sopkathon.domain.match.dto.response.MatchGameTypeUpdateResponse;
 import org.sopt.sopkathon.domain.match.dto.response.MatchReadyResponse;
+import org.sopt.sopkathon.domain.match.dto.response.MatchStatusResponse;
 import org.sopt.sopkathon.domain.match.entity.GameType;
 import org.sopt.sopkathon.domain.match.service.MatchService;
 import org.springframework.http.ResponseEntity;
@@ -69,5 +70,13 @@ public class MatchController implements MatchControllerDocs {
     ) {
         MatchResultResponse response = matchService.getMatchResult(matchId, memberId);
         return CommonResponse.success(MatchSuccessCode.MATCH_RESULT_FOUND, response);
+    }
+
+    @Override
+    @GetMapping("/status")
+    public ResponseEntity<CommonResponse<MatchStatusResponse>> getMatchStatus(
+            @PathVariable Long matchId,
+            @RequestHeader("X-Demo-Member-Id") Long memberId) {
+        return CommonResponse.success(MatchSuccessCode.MATCH_STATUS_FETCHED, matchService.getMatchStatus(matchId, memberId));
     }
 }

@@ -1,0 +1,21 @@
+server:
+  address: 127.0.0.1
+  forward-headers-strategy: framework
+
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 5
+      data-source-properties:
+        sslMode: VERIFY_IDENTITY
+        trustCertificateKeyStoreUrl: file:/etc/sopkathon/rds-truststore.p12
+        trustCertificateKeyStoreType: PKCS12
+        trustCertificateKeyStorePassword: changeit
+        fallbackToSystemTrustStore: false
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false

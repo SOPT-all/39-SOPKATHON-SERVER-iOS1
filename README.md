@@ -23,7 +23,7 @@
 | Persistence | Spring Data JPA | 기본 CRUD와 도메인 모델 영속성을 일관되게 다루기 위해 사용합니다. |
 | Query | QueryDSL | 필터·정렬 등 동적 쿼리를 타입 안전하게 조립하기 위해 사용합니다. |
 | Validation | Bean Validation | 요청 값 검증을 선언적으로 처리하기 위해 사용합니다. |
-| Database | H2 (local), MySQL | 로컬에서는 목업 데이터를 빠르게 검증하고, 배포 환경에서는 관계형 데이터베이스를 사용합니다. |
+| Database | MySQL 8.4 | 로컬 Docker와 배포 환경 RDS에서 같은 MySQL 버전 계열을 사용합니다. |
 | Documentation | Springdoc | API 명세를 Swagger UI로 확인하기 위해 사용합니다. |
 | Utility | Lombok | 반복되는 보일러플레이트를 줄이기 위해 사용합니다. |
 
@@ -58,6 +58,16 @@
 ```
 
 상세 코드 규칙은 [코드 컨벤션](docs/CODE_CONVENTION.md)에서 확인할 수 있습니다.
+
+## 로컬 실행
+
+- 팀 공유 기본값은 `.env.example`에 있습니다. 로컬 포트나 비밀번호를 바꾸려면 이 파일을 `.env`로 복사해 수정합니다.
+- 서버와 MySQL을 함께 실행하려면 `docker compose up -d --build`를 사용합니다.
+- IDE 또는 Java 21에서 서버를 실행하려면 `docker compose up -d --wait mysql` 후 `./gradlew bootRun`을 실행합니다. Windows에서는 `.\gradlew.bat bootRun`을 사용합니다.
+- MySQL은 `127.0.0.1:3306`의 `sopkathon` DB를 사용합니다. Docker 포트를 바꾸면 IDE 실행 시 `DB_URL`도 같은 포트로 맞춥니다. `LOCAL_DB_PASSWORD`를 변경했다면 IDE 실행 시 `DB_PASSWORD`도 맞춥니다.
+- 서버 상태는 `http://localhost:8080/actuator/health`, API 명세는 `http://localhost:8080/swagger-ui/index.html`에서 확인합니다.
+
+팀 접속 및 AWS 운영 방법은 [배포 안내](docs/DEPLOYMENT.md)에서 확인합니다.
 
 ## Git 브랜치 전략
 

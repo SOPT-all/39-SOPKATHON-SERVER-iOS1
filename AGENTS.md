@@ -12,13 +12,14 @@
 
 ## 기술 스택
 
-Java 21 · Spring Boot 4.1.2 · Gradle · Spring Web · Spring Data JPA · Validation · Lombok · H2(local) · Springdoc
+Java 21 · Spring Boot 4.1.2 · Gradle · Spring Web · Spring Data JPA · Validation · Lombok · MySQL 8.4 · Springdoc
 (QueryDSL은 필요한 이슈에서 도입)
 
 ## 명령어
 
 ```bash
-./gradlew bootRun    # 로컬 실행 (local 프로필, H2 인메모리)
+docker compose up -d --wait mysql
+./gradlew bootRun    # 로컬 실행 (local 프로필)
 ./gradlew test       # 테스트
 ./gradlew build      # 빌드
 ```

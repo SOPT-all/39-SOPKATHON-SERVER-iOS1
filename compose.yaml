@@ -1,0 +1,32 @@
+services:
+  mysql:
+    image: mysql:8.4.9
+    environment:
+      MYSQL_DATABASE: sopkathon
+      MYSQL_USER: sopkathon
+      MYSQL_PASSWORD: ${LOCAL_DB_PASSWORD:-local-sopkathon}
+      MYSQL_RANDOM_ROOT_PASSWORD: 'yes'
+    ports:
+      - '127.0.0.1:${LOCAL_DB_PORT:-3306}:3306'
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD-SHELL', 'MYSQL_PWD="$${MYSQL_PASSWORD}" mysql -h 127.0.0.1 -u "$${MYSQL_USER}" -e "SELECT 1" "$${MYSQL_DATABASE}"']
+      interval: 5s
+      timeout: 3s
+      retries: 24
+
+  app:
+    build: .
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      DB_URL: jdbc:mysql://mysql:3306/sopkathon
+      DB_PASSWORD: ${LOCAL_DB_PASSWORD:-local-sopkathon}
+    ports:
+      - '127.0.0.1:8080:8080'
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql-data:

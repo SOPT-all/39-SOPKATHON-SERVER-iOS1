@@ -37,6 +37,7 @@ class MatchControllerTest {
     private static final long SECOND_MEMBER_ID = 12201L;
     private static final String DEMO_MEMBER_HEADER = "X-Demo-Member-Id";
     private static final String MATCH_URL = "/api/v1/game-matches/{matchId}";
+    private static final String STATUS_URL = MATCH_URL + "/status";
     private static final String READY_BODY = "{\"isReady\":true}";
 
     @Mock
@@ -59,6 +60,54 @@ class MatchControllerTest {
                         new MatchService(gameMatchRepository, matchTeamRepository, matchParticipantRepository)))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
+    }
+
+    @Test
+    void 참가자의_폴링에_현재_경기_상태를_반환한다() throws Exception {
+        ReflectionTestUtils.setField(match, "status", MatchStatus.IN_PROGRESS);
+        given(gameMatchRepository.findById(MATCH_ID)).willReturn(Optional.of(match));
+        given(matchParticipantRepository.existsByMatchTeamGameMatchIdAndMemberId(MATCH_ID, FIRST_MEMBER_ID))
+                .willReturn(true);
+
+        mockMvc.perform(get(STATUS_URL, MATCH_ID).header(DEMO_MEMBER_HEADER, FIRST_MEMBER_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("MATCH_STATUS_FETCHED"))
+                .andExpect(jsonPath("$.data.matchId").value((int) MATCH_ID))
+                .andExpect(jsonPath("$.data.status").value("IN_PROGRESS"));
+
+        ReflectionTestUtils.setField(match, "status", MatchStatus.FINISHED);
+
+        mockMvc.perform(get(STATUS_URL, MATCH_ID).header(DEMO_MEMBER_HEADER, FIRST_MEMBER_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("FINISHED"));
+    }
+
+    @Test
+    void 비참가자_또는_없는_경기의_상태_조회는_실패한다() throws Exception {
+        given(gameMatchRepository.findById(MATCH_ID)).willReturn(Optional.of(match));
+
+        mockMvc.perform(get(STATUS_URL, MATCH_ID).header(DEMO_MEMBER_HEADER, FIRST_MEMBER_ID))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("MATCH_PARTICIPANT_FORBIDDEN"));
+
+        mockMvc.perform(get(STATUS_URL, MATCH_ID + 1).header(DEMO_MEMBER_HEADER, FIRST_MEMBER_ID))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("MATCH_NOT_FOUND"));
+    }
+
+    @Test
+    void 경기_상태_조회에_유효한_경기_ID와_멤버_헤더가_필요하다() throws Exception {
+        mockMvc.perform(get(STATUS_URL, MATCH_ID))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("MISSING_PARAMETER"));
+
+        mockMvc.perform(get(STATUS_URL, 0).header(DEMO_MEMBER_HEADER, FIRST_MEMBER_ID))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+
+        mockMvc.perform(get(STATUS_URL, MATCH_ID).header(DEMO_MEMBER_HEADER, 0))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
     }
 
     @Test

@@ -13,6 +13,7 @@ import org.sopt.sopkathon.domain.match.dto.request.MatchReadyRequest;
 import org.sopt.sopkathon.domain.match.dto.response.MatchGameTypeResponse;
 import org.sopt.sopkathon.domain.match.dto.response.MatchGameTypeUpdateResponse;
 import org.sopt.sopkathon.domain.match.dto.response.MatchReadyResponse;
+import org.sopt.sopkathon.domain.match.dto.response.MatchStatusResponse;
 import org.springframework.http.ResponseEntity;
 
 @Tag(name = "Match", description = "경기 API")
@@ -75,6 +76,18 @@ public interface MatchControllerDocs {
     @ApiResponse(responseCode = "404", description = "MATCH_NOT_FOUND")
     @ApiResponse(responseCode = "409", description = "MATCH_RESULT_NOT_READY 또는 MATCH_RESULT_DATA_INVALID")
     ResponseEntity<CommonResponse<MatchResultResponse>> getMatchResult(
+            @Parameter(description = "경기 ID", example = "1025")
+            @Positive(message = "경기 ID는 1 이상이어야 합니다.") Long matchId,
+            @Parameter(description = "현재 기기의 시연용 멤버 ID", example = "11101")
+            @Positive(message = "멤버 ID는 1 이상이어야 합니다.") Long memberId);
+
+    @Operation(summary = "경기 종료 상태 조회",
+            description = "게임 종료 화면에서 3초마다 조회합니다. IN_PROGRESS이면 대기하고, FINISHED이면 폴링을 멈추고 경기 결과를 조회합니다. TIMEOUT, CANCELLED, INVALID이면 폴링을 종료합니다.")
+    @ApiResponse(responseCode = "200", description = "MATCH_STATUS_FETCHED")
+    @ApiResponse(responseCode = "400", description = "헤더 또는 경기 ID가 올바르지 않음")
+    @ApiResponse(responseCode = "403", description = "MATCH_PARTICIPANT_FORBIDDEN")
+    @ApiResponse(responseCode = "404", description = "MATCH_NOT_FOUND")
+    ResponseEntity<CommonResponse<MatchStatusResponse>> getMatchStatus(
             @Parameter(description = "경기 ID", example = "1025")
             @Positive(message = "경기 ID는 1 이상이어야 합니다.") Long matchId,
             @Parameter(description = "현재 기기의 시연용 멤버 ID", example = "11101")

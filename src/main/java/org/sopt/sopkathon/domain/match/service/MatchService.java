@@ -10,10 +10,12 @@ import lombok.RequiredArgsConstructor;
 import org.sopt.sopkathon.common.exception.BusinessException;
 import org.sopt.sopkathon.domain.match.code.MatchErrorCode;
 import org.sopt.sopkathon.domain.match.dto.request.MatchVoiceRecordSubmitRequest;
+import org.sopt.sopkathon.domain.match.dto.response.MatchGameTypeResponse;
+import org.sopt.sopkathon.domain.match.dto.response.MatchGameTypeUpdateResponse;
 import org.sopt.sopkathon.domain.match.dto.response.MatchReadyResponse;
 import org.sopt.sopkathon.domain.match.dto.response.MatchVoiceRecordSubmitResponse;
-import org.sopt.sopkathon.domain.match.dto.response.MatchVoiceResultResponse;
 import org.sopt.sopkathon.domain.match.dto.response.MatchVoiceResultResponse.TeamResult;
+import org.sopt.sopkathon.domain.match.dto.response.MatchVoiceResultResponse;
 import org.sopt.sopkathon.domain.match.entity.GameMatch;
 import org.sopt.sopkathon.domain.match.entity.GameType;
 import org.sopt.sopkathon.domain.match.entity.MatchParticipant;
@@ -62,6 +64,34 @@ public class MatchService {
         List<MatchParticipant> participants = matchParticipantRepository.findAllByMatchTeamGameMatchId(matchId);
         MatchParticipant participant = getParticipant(participants, memberId);
         return MatchReadyResponse.of(match, participant.isReady(), countReadyParticipants(participants), participants.size());
+    }
+
+    @Transactional
+    public MatchGameTypeUpdateResponse updateGameType(Long matchId, Long memberId, GameType gameType) {
+        GameMatch match = gameMatchRepository.findByIdForUpdate(matchId)
+                .orElseThrow(() -> new BusinessException(MatchErrorCode.MATCH_NOT_FOUND));
+        if (!matchParticipantRepository.existsByMatchTeamGameMatchIdAndMemberId(matchId, memberId)) {
+            throw new BusinessException(MatchErrorCode.MATCH_PARTICIPANT_FORBIDDEN);
+        }
+
+        if (match.getStatus() == MatchStatus.SEARCHING) {
+            throw new BusinessException(MatchErrorCode.MATCH_NOT_READY);
+        }
+        if (match.hasSelectedGameType()) {
+            return MatchGameTypeUpdateResponse.of(match, false);
+        }
+        if (match.getStatus() != MatchStatus.FOUND || match.getGameType() != null) {
+            throw new BusinessException(MatchErrorCode.MATCH_GAME_TYPE_SELECTION_NOT_ALLOWED);
+        }
+
+        match.startGame(gameType);
+        return MatchGameTypeUpdateResponse.of(match, true);
+    }
+
+    public MatchGameTypeResponse getGameType(Long matchId) {
+        GameMatch match = gameMatchRepository.findById(matchId)
+                .orElseThrow(() -> new BusinessException(MatchErrorCode.MATCH_NOT_FOUND));
+        return MatchGameTypeResponse.of(match);
     }
 
     private MatchParticipant getParticipant(List<MatchParticipant> participants, Long memberId) {

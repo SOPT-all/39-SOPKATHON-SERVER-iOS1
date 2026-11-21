@@ -60,4 +60,9 @@ public class GameMatch {
         this.teamSize = teamSize;
         this.status = MatchStatus.SEARCHING;
     }
+
+    public void finish(LocalDateTime finishedAt) {
+        this.status = MatchStatus.FINISHED;
+        this.finishedAt = finishedAt;
+    }
 }

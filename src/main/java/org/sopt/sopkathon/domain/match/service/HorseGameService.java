@@ -36,26 +36,26 @@ public class HorseGameService {
             Long memberId,
             HorseRecordSubmitRequest request
     ) {
-        GameMatch gameMatch = getHorseMatch(matchId);
+        GameMatch gameMatch = getHorseMatchForUpdate(matchId);
+        MatchParticipant participant = getParticipant(matchId, memberId);
+        if (participant.getRecordStatus() == RecordStatus.SUBMITTED) {
+            return toSubmitResponse(gameMatch, participant);
+        }
         if (gameMatch.getStatus() != MatchStatus.IN_PROGRESS) {
             throw new BusinessException(HorseGameErrorCode.HORSE_GAME_NOT_IN_PROGRESS);
         }
 
-        MatchParticipant participant = getParticipant(matchId, memberId);
-        if (participant.getRecordStatus() != RecordStatus.SUBMITTED) {
-            participant.submitHorseRecord(request.elapsedMilliseconds());
-        }
-
-        Long finishTimeMilliseconds = participant.getFinishTimeMilliseconds();
-        if (finishTimeMilliseconds == null) {
-            throw new BusinessException(HorseGameErrorCode.HORSE_RESULT_DATA_INVALID);
-        }
-        return new HorseRecordSubmitResponse(gameMatch.getId(), participant.getId(), finishTimeMilliseconds);
+        participant.submitHorseRecord(request.elapsedMilliseconds());
+        finishIfAllRecordsSubmitted(gameMatch);
+        return toSubmitResponse(gameMatch, participant);
     }
 
     public HorseResultResponse getResult(Long matchId, Long memberId) {
         GameMatch gameMatch = getHorseMatch(matchId);
         getParticipant(matchId, memberId);
+        if (gameMatch.getStatus() != MatchStatus.FINISHED) {
+            throw new BusinessException(HorseGameErrorCode.HORSE_RESULT_NOT_READY);
+        }
 
         List<MatchTeam> teams = matchTeamRepository.findAllByGameMatchIdOrderByTeamSlot(matchId);
         if (teams.size() != 2) {
@@ -85,10 +85,21 @@ public class HorseGameService {
     private GameMatch getHorseMatch(Long matchId) {
         GameMatch gameMatch = gameMatchRepository.findById(matchId)
                 .orElseThrow(() -> new BusinessException(HorseGameErrorCode.MATCH_NOT_FOUND));
+        validateHorseMatch(gameMatch);
+        return gameMatch;
+    }
+
+    private GameMatch getHorseMatchForUpdate(Long matchId) {
+        GameMatch gameMatch = gameMatchRepository.findByIdForUpdate(matchId)
+                .orElseThrow(() -> new BusinessException(HorseGameErrorCode.MATCH_NOT_FOUND));
+        validateHorseMatch(gameMatch);
+        return gameMatch;
+    }
+
+    private void validateHorseMatch(GameMatch gameMatch) {
         if (gameMatch.getGameType() != GameType.HORSE_TAP) {
             throw new BusinessException(HorseGameErrorCode.HORSE_GAME_TYPE_MISMATCH);
         }
-        return gameMatch;
     }
 
     private MatchParticipant getParticipant(Long matchId, Long memberId) {
@@ -108,6 +119,24 @@ public class HorseGameService {
                 .mapToLong(MatchParticipant::getFinishTimeMilliseconds)
                 .sum();
         return new TeamScore(totalFinishTimeMilliseconds);
+    }
+
+    private void finishIfAllRecordsSubmitted(GameMatch gameMatch) {
+        List<MatchParticipant> participants = matchParticipantRepository
+                .findAllByMatchTeamGameMatchId(gameMatch.getId());
+        if (!participants.isEmpty() && participants.stream()
+                .allMatch(participant -> participant.getRecordStatus() == RecordStatus.SUBMITTED
+                        && participant.getFinishTimeMilliseconds() != null)) {
+            gameMatch.finishGame();
+        }
+    }
+
+    private HorseRecordSubmitResponse toSubmitResponse(GameMatch gameMatch, MatchParticipant participant) {
+        Long finishTimeMilliseconds = participant.getFinishTimeMilliseconds();
+        if (finishTimeMilliseconds == null) {
+            throw new BusinessException(HorseGameErrorCode.HORSE_RESULT_DATA_INVALID);
+        }
+        return new HorseRecordSubmitResponse(gameMatch.getId(), participant.getId(), finishTimeMilliseconds);
     }
 
     private MatchResult decideResult(long firstTeamTotal, long secondTeamTotal) {

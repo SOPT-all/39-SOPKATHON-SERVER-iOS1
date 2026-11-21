@@ -66,7 +66,7 @@ class HorseGameServiceTest {
 
     @Test
     void 진행중인_말달리기에서_개인_완주_시간을_제출한다() {
-        given(gameMatchRepository.findById(MATCH_ID)).willReturn(Optional.of(horseMatch));
+        given(gameMatchRepository.findByIdForUpdate(MATCH_ID)).willReturn(Optional.of(horseMatch));
         given(matchParticipantRepository.findByMatchTeamGameMatchIdAndMemberId(MATCH_ID, MEMBER_ID))
                 .willReturn(Optional.of(myParticipant));
 
@@ -85,7 +85,7 @@ class HorseGameServiceTest {
     @Test
     void 이미_제출한_말달리기_기록은_재전송해도_최초값을_유지한다() {
         myParticipant.submitHorseRecord(1_200L);
-        given(gameMatchRepository.findById(MATCH_ID)).willReturn(Optional.of(horseMatch));
+        given(gameMatchRepository.findByIdForUpdate(MATCH_ID)).willReturn(Optional.of(horseMatch));
         given(matchParticipantRepository.findByMatchTeamGameMatchIdAndMemberId(MATCH_ID, MEMBER_ID))
                 .willReturn(Optional.of(myParticipant));
 
@@ -101,6 +101,7 @@ class HorseGameServiceTest {
 
     @Test
     void 양팀_완주_시간을_합산해_더_짧은_팀을_승리로_반환한다() {
+        ReflectionTestUtils.setField(horseMatch, "status", MatchStatus.FINISHED);
         MatchParticipant mySecondParticipant = submittedParticipant(
                 3122L, myTeam, member(11102L, myTeam.getSchoolClass(), "김지우"), 1_100L);
         myParticipant.submitHorseRecord(1_000L);
@@ -132,6 +133,7 @@ class HorseGameServiceTest {
 
     @Test
     void 모든_참가자가_기록을_제출하지_않으면_결과를_조회할_수_없다() {
+        ReflectionTestUtils.setField(horseMatch, "status", MatchStatus.FINISHED);
         myParticipant.submitHorseRecord(1_000L);
         MatchParticipant pendingOpponent = participant(
                 3125L, opponentTeam, member(23301L, opponentTeam.getSchoolClass(), "박민서"));
@@ -154,7 +156,7 @@ class HorseGameServiceTest {
     @Test
     void 말달리기가_아닌_경기에는_기록을_제출할_수_없다() {
         GameMatch voiceMatch = match(GameType.VOICE_TUG, MatchStatus.IN_PROGRESS);
-        given(gameMatchRepository.findById(MATCH_ID)).willReturn(Optional.of(voiceMatch));
+        given(gameMatchRepository.findByIdForUpdate(MATCH_ID)).willReturn(Optional.of(voiceMatch));
 
         assertThatThrownBy(() -> horseGameService.submitRecord(
                 MATCH_ID,
@@ -162,6 +164,27 @@ class HorseGameServiceTest {
                 new HorseRecordSubmitRequest(1_200L)
         )).isInstanceOfSatisfying(BusinessException.class,
                 e -> assertThat(e.getErrorCode()).isEqualTo(HorseGameErrorCode.HORSE_GAME_TYPE_MISMATCH));
+    }
+
+    @Test
+    void 마지막_기록이_제출되면_경기를_종료한다() {
+        MatchParticipant firstParticipant = submittedParticipant(
+                3121L, myTeam, member(MEMBER_ID, myTeam.getSchoolClass(), "김민서"), 1_000L);
+        MatchParticipant opponentFirstParticipant = submittedParticipant(
+                3125L, opponentTeam, member(23301L, opponentTeam.getSchoolClass(), "박민서"), 1_200L);
+        MatchParticipant opponentSecondParticipant = submittedParticipant(
+                3126L, opponentTeam, member(23302L, opponentTeam.getSchoolClass(), "박지우"), 1_300L);
+
+        given(gameMatchRepository.findByIdForUpdate(MATCH_ID)).willReturn(Optional.of(horseMatch));
+        given(matchParticipantRepository.findByMatchTeamGameMatchIdAndMemberId(MATCH_ID, MEMBER_ID))
+                .willReturn(Optional.of(myParticipant));
+        given(matchParticipantRepository.findAllByMatchTeamGameMatchId(MATCH_ID))
+                .willReturn(List.of(firstParticipant, myParticipant, opponentFirstParticipant, opponentSecondParticipant));
+
+        horseGameService.submitRecord(MATCH_ID, MEMBER_ID, new HorseRecordSubmitRequest(1_100L));
+
+        assertThat(horseMatch.getStatus()).isEqualTo(MatchStatus.FINISHED);
+        assertThat(horseMatch.getFinishedAt()).isNotNull();
     }
 
     private GameMatch match(GameType gameType, MatchStatus status) {

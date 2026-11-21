@@ -76,16 +76,24 @@ class MemberControllerTest {
     void 학년이_없으면_400으로_응답한다() throws Exception {
         mockMvc.perform(get("/api/v1/home").header(DEMO_MEMBER_HEADER, 1).param("classNumber", "1"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("MISSING_PARAMETER"))
-                .andExpect(jsonPath("$.message").value("'grade' 파라미터는 필수입니다."));
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
+                .andExpect(jsonPath("$.message").value("학년은 필수입니다."));
+    }
+
+    @Test
+    void 학년과_반_번호가_모두_없으면_한_번에_알려준다() throws Exception {
+        mockMvc.perform(get("/api/v1/home").header(DEMO_MEMBER_HEADER, 1))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
+                .andExpect(jsonPath("$.message").value("학년은 필수입니다. 반 번호는 필수입니다."));
     }
 
     @Test
     void 반_번호가_없으면_400으로_응답한다() throws Exception {
         mockMvc.perform(get("/api/v1/home").header(DEMO_MEMBER_HEADER, 1).param("grade", "1"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("MISSING_PARAMETER"))
-                .andExpect(jsonPath("$.message").value("'classNumber' 파라미터는 필수입니다."));
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
+                .andExpect(jsonPath("$.message").value("반 번호는 필수입니다."));
     }
 
     @Test

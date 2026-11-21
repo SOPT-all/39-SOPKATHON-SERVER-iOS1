@@ -1,6 +1,7 @@
 package org.sopt.sopkathon.common.exception;
 
 import java.util.Objects;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.sopt.sopkathon.common.code.GlobalErrorCode;
 import org.sopt.sopkathon.common.dto.CommonResponse;
@@ -48,8 +49,11 @@ public class GlobalExceptionHandler {
                 .stream()
                 .map(MessageSourceResolvable::getDefaultMessage)
                 .filter(Objects::nonNull)
-                .findFirst()
-                .orElse(GlobalErrorCode.INVALID_INPUT.getMessage());
+                .distinct()
+                .collect(Collectors.joining(" "));
+        if (message.isEmpty()) {
+            message = GlobalErrorCode.INVALID_INPUT.getMessage();
+        }
         return CommonResponse.error(GlobalErrorCode.INVALID_INPUT, message);
     }
 

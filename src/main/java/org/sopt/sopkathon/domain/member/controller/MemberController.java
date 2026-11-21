@@ -24,8 +24,8 @@ public class MemberController implements MemberControllerDocs {
     @GetMapping("/home")
     public ResponseEntity<CommonResponse<MemberHomeResponse>> getHome(
             @RequestHeader("X-Demo-Member-Id") Long memberId,
-            @RequestParam Byte grade,
-            @RequestParam Short classNumber) {
+            @RequestParam(required = false) Byte grade,
+            @RequestParam(required = false) Short classNumber) {
         return CommonResponse.success(MemberSuccessCode.HOME_FETCHED,
                 memberService.getHome(memberId, grade, classNumber));
     }

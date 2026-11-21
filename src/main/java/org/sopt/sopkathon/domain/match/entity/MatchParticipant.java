@@ -72,4 +72,10 @@ public class MatchParticipant {
     public void markReady() {
         isReady = true;
     }
+
+    public void submitHorseRecord(long finishTimeMilliseconds) {
+        this.finishTimeMilliseconds = finishTimeMilliseconds;
+        this.recordStatus = RecordStatus.SUBMITTED;
+        this.submittedAt = LocalDateTime.now();
+    }
 }

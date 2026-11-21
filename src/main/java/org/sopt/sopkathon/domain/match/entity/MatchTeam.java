@@ -69,4 +69,8 @@ public class MatchTeam {
         this.schoolClass = schoolClass;
         this.teamSlot = teamSlot;
     }
+
+    public void updateResult(MatchResult result) {
+        this.result = result;
+    }
 }

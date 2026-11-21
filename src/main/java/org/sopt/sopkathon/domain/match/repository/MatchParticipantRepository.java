@@ -8,12 +8,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface MatchParticipantRepository extends JpaRepository<MatchParticipant, Long> {
 
-    @EntityGraph(attributePaths = "member")
+    @EntityGraph(attributePaths = "matchTeam")
+    Optional<MatchParticipant> findByMatchTeamGameMatchIdAndMemberId(Long gameMatchId, Long memberId);
+
+    @EntityGraph(attributePaths = {"matchTeam", "member"})
     List<MatchParticipant> findAllByMatchTeamGameMatchId(Long matchId);
 
     boolean existsByMatchTeamGameMatchIdAndMemberId(Long matchId, Long memberId);
-
-    Optional<MatchParticipant> findByMatchTeamGameMatchIdAndMemberId(Long gameMatchId, Long memberId);
 
     List<MatchParticipant> findAllByMatchTeamId(Long matchTeamId);
 }

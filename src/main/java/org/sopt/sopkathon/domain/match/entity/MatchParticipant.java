@@ -69,6 +69,12 @@ public class MatchParticipant {
         this.recordStatus = RecordStatus.PENDING;
     }
 
+    public void submitVoiceScore(BigDecimal voiceScore, LocalDateTime submittedAt) {
+        this.voiceScore = voiceScore.setScale(3);
+        this.recordStatus = RecordStatus.SUBMITTED;
+        this.submittedAt = submittedAt;
+    }
+
     public void markReady() {
         isReady = true;
     }

@@ -20,6 +20,7 @@ import org.sopt.sopkathon.domain.member.dto.response.MemberHomeResponse.MemberIn
 import org.sopt.sopkathon.domain.member.dto.response.MemberHomeResponse.SchoolClassInfo;
 import org.sopt.sopkathon.domain.member.dto.response.MemberHomeResponse.SchoolInfo;
 import org.sopt.sopkathon.domain.member.service.MemberService;
+import org.sopt.sopkathon.domain.school.code.SchoolErrorCode;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -47,9 +48,12 @@ class MemberControllerTest {
                 new SchoolInfo(1L, "성수고등학교"),
                 new SchoolClassInfo(1L, 1, 1),
                 List.of(new MemberInfo(1L, "김민서", true), new MemberInfo(2L, "이서준", false)));
-        given(memberService.getHome(1L)).willReturn(response);
+        given(memberService.getHome(1L, (byte) 1, (short) 1)).willReturn(response);
 
-        mockMvc.perform(get("/api/v1/home").header(DEMO_MEMBER_HEADER, 1))
+        mockMvc.perform(get("/api/v1/home")
+                        .header(DEMO_MEMBER_HEADER, 1)
+                        .param("grade", "1")
+                        .param("classNumber", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(200))
                 .andExpect(jsonPath("$.code").value("HOME_FETCHED"))
@@ -62,35 +66,102 @@ class MemberControllerTest {
 
     @Test
     void 헤더가_없으면_400으로_응답한다() throws Exception {
-        mockMvc.perform(get("/api/v1/home"))
+        mockMvc.perform(get("/api/v1/home").param("grade", "1").param("classNumber", "1"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("MISSING_PARAMETER"))
                 .andExpect(jsonPath("$.message").value("'X-Demo-Member-Id' 헤더는 필수입니다."));
     }
 
     @Test
+    void 학년이_없으면_400으로_응답한다() throws Exception {
+        mockMvc.perform(get("/api/v1/home").header(DEMO_MEMBER_HEADER, 1).param("classNumber", "1"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("MISSING_PARAMETER"))
+                .andExpect(jsonPath("$.message").value("'grade' 파라미터는 필수입니다."));
+    }
+
+    @Test
+    void 반_번호가_없으면_400으로_응답한다() throws Exception {
+        mockMvc.perform(get("/api/v1/home").header(DEMO_MEMBER_HEADER, 1).param("grade", "1"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("MISSING_PARAMETER"))
+                .andExpect(jsonPath("$.message").value("'classNumber' 파라미터는 필수입니다."));
+    }
+
+    @Test
     void 헤더가_숫자가_아니면_400으로_응답한다() throws Exception {
-        mockMvc.perform(get("/api/v1/home").header(DEMO_MEMBER_HEADER, "abc"))
+        mockMvc.perform(get("/api/v1/home")
+                        .header(DEMO_MEMBER_HEADER, "abc")
+                        .param("grade", "1")
+                        .param("classNumber", "1"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_PARAMETER_TYPE"));
+    }
+
+    @Test
+    void 학년이_숫자가_아니거나_범위를_넘으면_400으로_응답한다() throws Exception {
+        mockMvc.perform(get("/api/v1/home")
+                        .header(DEMO_MEMBER_HEADER, 1)
+                        .param("grade", "abc")
+                        .param("classNumber", "1"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_PARAMETER_TYPE"));
+        mockMvc.perform(get("/api/v1/home")
+                        .header(DEMO_MEMBER_HEADER, 1)
+                        .param("grade", "1000")
+                        .param("classNumber", "1"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_PARAMETER_TYPE"));
     }
 
     @Test
     void 헤더가_1_미만이면_400으로_응답한다() throws Exception {
-        mockMvc.perform(get("/api/v1/home").header(DEMO_MEMBER_HEADER, 0))
+        mockMvc.perform(get("/api/v1/home")
+                        .header(DEMO_MEMBER_HEADER, 0)
+                        .param("grade", "1")
+                        .param("classNumber", "1"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
                 .andExpect(jsonPath("$.message").value("멤버 ID는 1 이상이어야 합니다."));
     }
 
     @Test
-    void 존재하지_않는_멤버면_404로_응답한다() throws Exception {
-        given(memberService.getHome(99L)).willThrow(new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
+    void 학년이_1_미만이면_400으로_응답한다() throws Exception {
+        mockMvc.perform(get("/api/v1/home")
+                        .header(DEMO_MEMBER_HEADER, 1)
+                        .param("grade", "0")
+                        .param("classNumber", "1"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
+                .andExpect(jsonPath("$.message").value("학년은 1 이상이어야 합니다."));
+    }
 
-        mockMvc.perform(get("/api/v1/home").header(DEMO_MEMBER_HEADER, 99))
+    @Test
+    void 존재하지_않는_멤버면_404로_응답한다() throws Exception {
+        given(memberService.getHome(99L, (byte) 1, (short) 1))
+                .willThrow(new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+        mockMvc.perform(get("/api/v1/home")
+                        .header(DEMO_MEMBER_HEADER, 99)
+                        .param("grade", "1")
+                        .param("classNumber", "1"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.code").value("MEMBER_NOT_FOUND"))
                 .andExpect(jsonPath("$.message").value("존재하지 않는 멤버입니다."));
+    }
+
+    @Test
+    void 존재하지_않는_학급이면_404로_응답한다() throws Exception {
+        given(memberService.getHome(1L, (byte) 9, (short) 9))
+                .willThrow(new BusinessException(SchoolErrorCode.SCHOOL_CLASS_NOT_FOUND));
+
+        mockMvc.perform(get("/api/v1/home")
+                        .header(DEMO_MEMBER_HEADER, 1)
+                        .param("grade", "9")
+                        .param("classNumber", "9"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("SCHOOL_CLASS_NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("존재하지 않는 학급입니다."));
     }
 }

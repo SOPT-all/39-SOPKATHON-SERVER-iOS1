@@ -12,8 +12,7 @@ public record MemberHomeResponse(
         List<MemberInfo> members
 ) {
 
-    public static MemberHomeResponse of(Member me, List<Member> classMembers) {
-        SchoolClass schoolClass = me.getSchoolClass();
+    public static MemberHomeResponse of(Member me, SchoolClass schoolClass, List<Member> classMembers) {
         return new MemberHomeResponse(
                 MeInfo.from(me),
                 SchoolInfo.from(schoolClass.getSchool()),

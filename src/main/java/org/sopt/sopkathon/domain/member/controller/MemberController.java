@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -22,7 +23,10 @@ public class MemberController implements MemberControllerDocs {
     @Override
     @GetMapping("/home")
     public ResponseEntity<CommonResponse<MemberHomeResponse>> getHome(
-            @RequestHeader("X-Demo-Member-Id") Long memberId) {
-        return CommonResponse.success(MemberSuccessCode.HOME_FETCHED, memberService.getHome(memberId));
+            @RequestHeader("X-Demo-Member-Id") Long memberId,
+            @RequestParam Byte grade,
+            @RequestParam Short classNumber) {
+        return CommonResponse.success(MemberSuccessCode.HOME_FETCHED,
+                memberService.getHome(memberId, grade, classNumber));
     }
 }

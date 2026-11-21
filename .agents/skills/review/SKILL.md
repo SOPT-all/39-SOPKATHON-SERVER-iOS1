@@ -1,12 +1,12 @@
 ---
 name: review
-description: "/code로 구현한 브랜치가 스펙에 맞는지, 코드 컨벤션을 지키는지, 오버엔지니어링은 아닌지 점검하고 결과를 이슈에 남긴다. 사용자가 /review 이슈번호 라고 할 때 사용."
-argument-hint: "스펙 이슈 번호 (생략하면 현재 브랜치 feat/#N에서 추정)"
+description: "/code로 구현한 브랜치가 스펙에 맞는지, 코드 컨벤션을 지키는지, 오버엔지니어링은 아닌지 점검하고 결과를 이슈에 남긴다. 사용자가 /review 스펙ID 라고 할 때 사용."
+argument-hint: "스펙 ID 또는 이슈 번호 (생략하면 현재 브랜치 feat/#N에서 추정)"
 ---
 
 # /review — 구현 점검: 맞는가·컨벤션·오버엔지니어링 (3단계)
 
-현재 브랜치의 변경(`main` 대비)을 점검한다. 번호는 `$ARGUMENTS` 또는 브랜치명 `feat/#N`에서 얻는다. 둘 다 없으면 한 번만 묻는다.
+현재 브랜치의 변경(`main` 대비)을 점검한다. 이슈 번호 `N`은 브랜치명 `feat/#N`에서 얻는다. `$ARGUMENTS`가 스펙 ID면 `gh issue list --label spec --state all --search "sopkathon:spec:<id> in:body" --json number`로 `N`을 찾는다(숫자면 그대로 `N`). 찾지 못하면 한 번만 묻는다.
 
 ## 절차
 

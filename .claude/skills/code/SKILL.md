@@ -1,34 +1,41 @@
 ---
 name: code
-description: "기획자가 컨펌한 스펙 이슈를 읽고 AGENTS.md 컨벤션에 맞게 구현·테스트·커밋한다. 사용자가 /code 이슈번호 라고 할 때 사용."
-argument-hint: "스펙 이슈 번호 (예: 12)"
+description: "기획자가 컨펌한 스펙을 대시보드에서 읽어 GitHub 이슈와 feat/#N 브랜치를 만들고, AGENTS.md 컨벤션에 맞게 구현·테스트·커밋한다. 사용자가 /code 스펙ID 라고 할 때 사용."
+argument-hint: "스펙 ID (예: login-api). 이슈가 이미 있는 기존 스펙은 이슈 번호"
 ---
 
-# /code — 스펙 기반 구현 (2단계)
+# /code — 이슈 생성 + 스펙 기반 구현 (2단계)
 
-컨펌된 스펙 이슈(`$ARGUMENTS`)를 구현하고 **PR 초안까지 써 둔다**. 번호가 없으면 한 번만 묻는다. 필요한 만큼만 구현한다: 스펙을 만족하는 가장 단순한 코드가 목표이고, 나중에 `/review`가 오버엔지니어링을 점검한다.
+컨펌된 스펙(`$ARGUMENTS`)으로 **GitHub 이슈를 만들고**, 구현하고, **PR 초안까지 써 둔다**. ID가 없으면 한 번만 묻는다. 필요한 만큼만 구현한다: 스펙을 만족하는 가장 단순한 코드가 목표이고, 나중에 `/review`가 오버엔지니어링을 점검한다.
+
+스펙은 대시보드(Firestore)에 있다. `docs/ai/dashboard.json`의 `firebaseProjectId`를 `<P>`라 하자. 읽기는 공개라 로그인이 필요 없다. 값은 `fields.<이름>.stringValue`에 들어 있다.
+
+```bash
+curl -s "https://firestore.googleapis.com/v1/projects/<P>/databases/(default)/documents/specs/<id>"
+curl -s "https://firestore.googleapis.com/v1/projects/<P>/databases/(default)/documents/approvals/<id>"
+```
 
 ## 1. 게이트 (실패하면 중단하고 이유만 알린다)
 
-```bash
-gh issue view N --json number,title,body,labels,state
-```
-
-- **기획자 컨펌 확인.** 컨펌은 대시보드(Firestore)에 저장된다. `docs/ai/dashboard.json`의 `firebaseProjectId`로 읽는다.
-  ```bash
-  curl -s "https://firestore.googleapis.com/v1/projects/<firebaseProjectId>/databases/(default)/documents/approvals/N"
-  ```
-  응답의 `fields.status.stringValue`가 `approved`면 통과다 (`fields.by`, `fields.comment`도 보고 시 인용). 문서가 없거나(404) `changes`면 중단한다: "기획자 컨펌 전입니다. 대시보드에서 승인을 받으세요 (`dashboardUrl`)." `changes`면 코멘트를 보여 주고 `/spec N`으로 개정하라고 안내한다. `firebaseProjectId`가 비어 있으면 이슈에 `stage:approved` 라벨이 있는지로 대신 확인한다.
-- 스펙이 승인 뒤에 개정되었을 수 있다(대시보드가 "승인 이후 스펙이 바뀜"으로 표시). 이슈 최종 수정 시각이 승인 시각(`fields.at.timestampValue`)보다 늦고 본문이 바뀐 듯하면 사용자에게 알리고 재승인 여부를 묻는다.
-- 이슈가 닫혀 있으면 중단한다.
+- **스펙 존재**: `specs/<id>`가 404면 중단한다: "대시보드에 업로드된 스펙이 아닙니다. `/spec`으로 만든 파일을 대시보드의 스펙 업로드로 올리세요." 본문은 `fields.body`, 제목은 `fields.title`이다.
+- **기획자 컨펌**: `approvals/<id>`의 `fields.status.stringValue`가 `approved`면 통과다(`fields.by`, `fields.comment`는 보고 시 인용). 문서가 없거나(404) `changes`면 중단한다: "기획자 컨펌 전입니다. 대시보드에서 승인을 받으세요 (`dashboardUrl`)." `changes`면 코멘트를 보여 주고 `/spec <id>`로 개정하라고 안내한다.
+- **승인 이후 개정 여부**: `approvals`의 `fields.specHash`는 승인 당시 스펙 본문의 SHA-256(소문자 hex, UTF-8)이다. 스펙 본문을 임시 파일에 저장해 `node -e "process.stdout.write(require('crypto').createHash('sha256').update(require('fs').readFileSync(0,'utf8')).digest('hex'))" < 파일`로 계산해 비교한다. 다르면 승인 이후 스펙이 바뀐 것이니 중단하고 재승인을 안내한다.
+- **기존 이슈**: 이 스펙의 이슈가 이미 있는지 `gh issue list --label spec --state all --search "sopkathon:spec:<id> in:body" --json number,state`로 확인한다. 열린 이슈가 있으면 새로 만들지 않고 그 번호를 `N`으로 쓴다(이어서 작업). 닫힌 이슈만 있으면 중단하고 알린다.
+- **이슈가 이미 있는 기존 스펙**: 인자가 숫자(이슈 번호)면 대시보드 스펙이 없는 예전 방식 스펙이다. 이슈 본문이 스펙이고, 승인 문서는 `approvals/issue-<번호>`다. 이슈는 새로 만들지 않고 번호를 `N`으로 쓴다.
 - 워킹 트리가 깨끗한지 `git status --porcelain`으로 확인한다. 변경이 있으면 사용자에게 알리고 멈춘다.
+- `gh auth status`가 실패하면 `gh auth login`을 안내한다.
 
-## 2. 준비
+## 2. 이슈 생성과 준비
 
 1. `AGENTS.md`와 `docs/CODE_CONVENTION.md`(있으면)를 읽는다. 둘이 어긋나면 `docs/CODE_CONVENTION.md`를 우선하고 사용자에게 알린다. **패키지 구조, 네이밍, 공통 응답, 예외 처리, 검증, 설정 규칙을 그대로 따른다.** 코드를 쓰기 전에 관련 기존 파일(Controller, `CommonResponse`, `BusinessException`, 에러 코드 enum 등)을 실제로 열어 본다. 없는 클래스나 API를 있는 것처럼 쓰지 않는다.
-2. 스펙의 **요구사항(FR)과 완료 조건**을 체크리스트로 정리해 사용자에게 한 번 보여 준다. 범위를 넘는 일(리팩터링, 의존성 추가)은 계획에 넣지 않는다.
-3. 브랜치를 만든다: `git switch main && git pull --ff-only && git switch -c feat/#N`. 이미 있으면 그 브랜치로 전환한다. `main`에는 직접 커밋하지 않는다.
-4. 라벨을 옮긴다: `gh issue edit N --remove-label stage:spec --remove-label stage:approved --add-label stage:coding` (없는 라벨 제거 오류는 무시). 이어서 `docs/ai/dashboard.json`의 `dashboardRepo`로 `gh workflow run deploy.yml -R <dashboardRepo>`를 실행해 대시보드를 갱신한다(실패해도 무시하고 계속, `dashboardRepo`가 비어 있으면 건너뜀).
+2. 스펙의 **요구사항(FR)과 완료 조건**을 체크리스트로 정리해 사용자에게 한 번 보여 주고, 아래 이슈를 만들어도 되는지 확인한다. 범위를 넘는 일(리팩터링, 의존성 추가)은 계획에 넣지 않는다.
+3. **이슈 생성** (기존 이슈가 없을 때만). 라벨이 없으면 만든다(이미 있으면 무시): `gh label create spec --color 5319e7 -d "기능 스펙"`, `stage:coding`(1d76db), `stage:review`(c5def5), `stage:pr`(bfdadc), `stage:changes`(d93f0b). 본문은 스펙 본문 + 맨 아래 한 줄 `<!-- sopkathon:spec:<id> -->`(대시보드가 스펙과 이슈를 잇는 표식, **반드시 그대로**)로 임시 파일에 만들고:
+   ```bash
+   gh issue create --title "<스펙 제목>" --body-file <파일> --label spec --label stage:coding --assignee @me
+   ```
+   출력된 URL의 번호가 `N`이다. 임시 파일은 끝나면 지운다.
+4. 브랜치를 만든다: `git switch main && git pull --ff-only && git switch -c feat/#N`. 이미 있으면 그 브랜치로 전환한다. `main`에는 직접 커밋하지 않는다.
+5. 기존 이슈를 이어받은 경우 라벨을 옮긴다: `gh issue edit N --remove-label stage:spec --remove-label stage:approved --add-label stage:coding` (없는 라벨 제거 오류는 무시). 이어서(이슈를 새로 만든 경우도 포함) `docs/ai/dashboard.json`의 `dashboardRepo`로 `gh workflow run deploy.yml -R <dashboardRepo>`를 실행해 대시보드를 갱신한다(실패해도 무시하고 계속, `dashboardRepo`가 비어 있으면 건너뜀).
 
 ## 3. 구현
 
@@ -75,7 +82,7 @@ gh issue view N --json number,title,body,labels,state
 
 ## 7. 보고
 
-구현한 FR 목록, 테스트 결과, 스펙과 달라진 점이나 `[확인 필요]`로 남은 것을 요약하고 `/review N`으로 넘어가라고 안내한다. 스펙과 다르게 구현해야 했다면 이슈에 `gh issue comment N`으로 이유를 남긴다.
+구현한 FR 목록, 테스트 결과, 스펙과 달라진 점이나 `[확인 필요]`로 남은 것을 요약하고 `/review <id>`로 넘어가라고 안내한다. 이슈 번호 `N`과 브랜치 이름도 함께 알린다. 스펙과 다르게 구현해야 했다면 이슈에 `gh issue comment N`으로 이유를 남긴다.
 
 ## 규칙
 

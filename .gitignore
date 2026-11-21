@@ -41,3 +41,6 @@ out/
 .env
 .env.*
 !.env.example
+
+# /spec 스펙 초안 (대시보드에 업로드하는 파일, 커밋하지 않음)
+docs/specs/

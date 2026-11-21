@@ -1,12 +1,12 @@
 ---
 name: pr
-description: "리뷰를 마친 브랜치를 푸시하고 /code가 써 둔 PR 초안으로 PR을 올려, 개발자가 머지하면 기능이 끝나게 한다. 사용자가 /pr 이슈번호 라고 할 때 사용."
-argument-hint: "스펙 이슈 번호 (생략하면 브랜치 feat/#N에서 추정)"
+description: "리뷰를 마친 브랜치를 푸시하고 /code가 써 둔 PR 초안으로 PR을 올려, 개발자가 머지하면 기능이 끝나게 한다. 사용자가 /pr 스펙ID 라고 할 때 사용."
+argument-hint: "스펙 ID 또는 이슈 번호 (생략하면 브랜치 feat/#N에서 추정)"
 ---
 
 # /pr — Pull Request 생성 (4단계)
 
-번호는 `$ARGUMENTS` 또는 브랜치명 `feat/#N`에서 얻는다. 이 단계의 끝은 **개발자 컨펌 요청**이다.
+이슈 번호 `N`은 브랜치명 `feat/#N`에서 얻는다. `$ARGUMENTS`가 스펙 ID면 `gh issue list --label spec --state all --search "sopkathon:spec:<id> in:body" --json number`로 `N`을 찾는다(숫자면 그대로 `N`). 이 단계의 끝은 **개발자 컨펌 요청**이다.
 
 ## 1. 게이트
 

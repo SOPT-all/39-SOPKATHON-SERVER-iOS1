@@ -1,6 +1,7 @@
 package org.sopt.sopkathon.common.exception;
 
 import java.util.Objects;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.sopt.sopkathon.common.code.GlobalErrorCode;
 import org.sopt.sopkathon.common.dto.CommonResponse;
@@ -10,6 +11,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -47,8 +49,11 @@ public class GlobalExceptionHandler {
                 .stream()
                 .map(MessageSourceResolvable::getDefaultMessage)
                 .filter(Objects::nonNull)
-                .findFirst()
-                .orElse(GlobalErrorCode.INVALID_INPUT.getMessage());
+                .distinct()
+                .collect(Collectors.joining(" "));
+        if (message.isEmpty()) {
+            message = GlobalErrorCode.INVALID_INPUT.getMessage();
+        }
         return CommonResponse.error(GlobalErrorCode.INVALID_INPUT, message);
     }
 
@@ -62,6 +67,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<CommonResponse<Void>> handleMissingParameter(MissingServletRequestParameterException e) {
         String message = "'" + e.getParameterName() + "' 파라미터는 필수입니다.";
+        return CommonResponse.error(GlobalErrorCode.MISSING_PARAMETER, message);
+    }
+
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<CommonResponse<Void>> handleMissingHeader(MissingRequestHeaderException e) {
+        String message = "'" + e.getHeaderName() + "' 헤더는 필수입니다.";
         return CommonResponse.error(GlobalErrorCode.MISSING_PARAMETER, message);
     }
 

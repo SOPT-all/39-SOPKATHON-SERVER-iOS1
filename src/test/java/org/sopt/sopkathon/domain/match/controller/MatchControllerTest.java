@@ -20,6 +20,7 @@ import org.sopt.sopkathon.domain.match.entity.MatchStatus;
 import org.sopt.sopkathon.domain.match.entity.MatchTeam;
 import org.sopt.sopkathon.domain.match.repository.GameMatchRepository;
 import org.sopt.sopkathon.domain.match.repository.MatchParticipantRepository;
+import org.sopt.sopkathon.domain.match.repository.MatchTeamRepository;
 import org.sopt.sopkathon.domain.match.service.MatchService;
 import org.sopt.sopkathon.domain.member.entity.Member;
 import org.springframework.http.MediaType;
@@ -44,6 +45,9 @@ class MatchControllerTest {
     @Mock
     private MatchParticipantRepository matchParticipantRepository;
 
+    @Mock
+    private MatchTeamRepository matchTeamRepository;
+
     private MockMvc mockMvc;
     private GameMatch match;
 
@@ -52,7 +56,7 @@ class MatchControllerTest {
         match = new GameMatch(null, (byte) 1);
         ReflectionTestUtils.setField(match, "id", MATCH_ID);
         mockMvc = MockMvcBuilders.standaloneSetup(new MatchController(
-                        new MatchService(gameMatchRepository, matchParticipantRepository)))
+                        new MatchService(gameMatchRepository, matchTeamRepository, matchParticipantRepository)))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }

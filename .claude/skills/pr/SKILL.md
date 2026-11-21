@@ -35,7 +35,7 @@ gh pr create --base main --title "<제목>" --body-file <임시파일> --assigne
 gh issue edit N --remove-label stage:review --add-label stage:pr
 ```
 
-임시 파일은 끝나면 지운다. 개발자 리뷰어가 정해져 있으면 `--reviewer`로 지정한다.
+임시 파일은 끝나면 지운다. 개발자 리뷰어가 정해져 있으면 `--reviewer`로 지정한다. 이어서 `docs/ai/dashboard.json`의 `dashboardRepo`로 `gh workflow run deploy.yml -R <dashboardRepo>`를 실행해 대시보드를 갱신한다(실패해도 무시하고 계속, `dashboardRepo`가 비어 있으면 건너뜀).
 
 ## 4. 보고
 

@@ -28,7 +28,7 @@ gh issue view N --json number,title,body,labels,state
 1. `AGENTS.md`와 `docs/CODE_CONVENTION.md`(있으면)를 읽는다. 둘이 어긋나면 `docs/CODE_CONVENTION.md`를 우선하고 사용자에게 알린다. **패키지 구조, 네이밍, 공통 응답, 예외 처리, 검증, 설정 규칙을 그대로 따른다.** 코드를 쓰기 전에 관련 기존 파일(Controller, `CommonResponse`, `BusinessException`, 에러 코드 enum 등)을 실제로 열어 본다. 없는 클래스나 API를 있는 것처럼 쓰지 않는다.
 2. 스펙의 **요구사항(FR)과 완료 조건**을 체크리스트로 정리해 사용자에게 한 번 보여 준다. 범위를 넘는 일(리팩터링, 의존성 추가)은 계획에 넣지 않는다.
 3. 브랜치를 만든다: `git switch main && git pull --ff-only && git switch -c feat/#N`. 이미 있으면 그 브랜치로 전환한다. `main`에는 직접 커밋하지 않는다.
-4. 라벨을 옮긴다: `gh issue edit N --remove-label stage:spec --remove-label stage:approved --add-label stage:coding` (없는 라벨 제거 오류는 무시).
+4. 라벨을 옮긴다: `gh issue edit N --remove-label stage:spec --remove-label stage:approved --add-label stage:coding` (없는 라벨 제거 오류는 무시). 이어서 `docs/ai/dashboard.json`의 `dashboardRepo`로 `gh workflow run deploy.yml -R <dashboardRepo>`를 실행해 대시보드를 갱신한다(실패해도 무시하고 계속, `dashboardRepo`가 비어 있으면 건너뜀).
 
 ## 3. 구현
 

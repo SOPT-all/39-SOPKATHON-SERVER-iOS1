@@ -53,7 +53,7 @@ argument-hint: "스펙 이슈 번호 (생략하면 현재 브랜치 feat/#N에�
    - [x] FR-1 …
    - [ ] FR-2 … (미구현)
    ```
-   라벨: `gh issue edit N --remove-label stage:coding --add-label stage:review`.
+   라벨: `gh issue edit N --remove-label stage:coding --add-label stage:review`. 이어서 `docs/ai/dashboard.json`의 `dashboardRepo`로 `gh workflow run deploy.yml -R <dashboardRepo>`를 실행해 대시보드를 갱신한다(실패해도 무시하고 계속, `dashboardRepo`가 비어 있으면 건너뜀).
 6. **수정 제안**: 필수 수정이 있으면 사용자에게 고칠지 묻는다. 동의하면 고치고(오버엔지니어링은 코드를 **줄이는** 방향으로) 테스트를 다시 돌려 새 커밋으로 남긴 뒤 리뷰 코멘트를 갱신한다. 코드가 달라졌으면 `<!-- sopkathon:pr-draft -->` 초안 코멘트도 맞게 고친다. 임의로 고치지 않는다. 필수 수정이 없고 규모가 적정이면 `/pr N`으로 안내한다.
 
 ## 규칙

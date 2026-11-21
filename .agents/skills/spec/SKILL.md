@@ -31,7 +31,8 @@ argument-hint: "기능 설명 또는 기존 이슈 번호(수정 시)"
    - 새 이슈: `gh issue create --title "<제목>" --body-file <파일> --label spec --label stage:spec`
    - 개정: `gh issue edit N --body-file <파일> --remove-label stage:changes --add-label stage:spec` 후 개정 요약을 `gh issue comment N`으로 남긴다.
    - 본문은 임시 파일로 만들고 끝나면 지운다.
-6. **보고**: 이슈 URL과 대시보드 주소(`docs/ai/dashboard.json`의 `dashboardUrl`)를 알리고 "기획자가 대시보드에서 승인하면 `/code N`으로 진행할 수 있다(반영까지 최대 10분)"고 안내한다. 개정이면 이전 승인은 무효이므로 재승인이 필요하다고 알린다. 담당자는 `--assignee @me`로 지정한다.
+   - **대시보드 갱신 요청**: `docs/ai/dashboard.json`의 `dashboardRepo`로 `gh workflow run deploy.yml -R <dashboardRepo>`를 실행한다. 대시보드가 곧바로 새 스펙을 보게 하려는 것이다(반영까지 약 30초). 실패해도 무시하고 계속하되, 보고에 "대시보드 갱신은 수동으로 필요할 수 있음"이라고 적는다. `dashboardRepo`가 비어 있으면 건너뛴다.
+6. **보고**: 이슈 URL과 대시보드 주소(`docs/ai/dashboard.json`의 `dashboardUrl`)를 알리고 "기획자가 대시보드에서 승인하면 `/code N`으로 진행할 수 있다(대시보드 반영은 약 30초, 갱신 요청이 실패했다면 최대 몇 십 분)"고 안내한다. 대시보드 주소를 기획자에게 직접 전달해야 한다는 점도 알린다(알림이 자동으로 가지 않는다). 개정이면 이전 승인은 무효이므로 재승인이 필요하다고 알린다. 담당자는 `--assignee @me`로 지정한다.
 
 ## 스펙 본문 템플릿
 
